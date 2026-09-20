@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Replace the domain below with the live address before publishing.
+
+  This file is maintained by hand while the content set is small. Add the new
+  URL here whenever a program or an article is published, otherwise search
+  engines keep indexing the previous list.
+
+  No lastmod dates are included because the content has not been dated yet.
+  Adding a guessed date would be worse than leaving it out.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://rihlahtourharamain.example/</loc>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/paket-umrah</loc>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/paket-umrah/reguler</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/paket-umrah/plus</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/paket-umrah/private</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/paket-haji</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/jadwal</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/konsultasi</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/tentang-kami</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/pembimbing</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/panduan</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/galeri</loc>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/faq</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/legalitas</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/kontak</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/kebijakan-privasi</loc>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/syarat-ketentuan</loc>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/pembatalan-refund</loc>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/panduan/dokumen-umrah-yang-bisa-disiapkan-lebih-awal</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/panduan/mendaftarkan-jamaah-lansia-yang-perlu-dibahas</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/panduan/manasik-yang-sebaiknya-dipahami-sebelum-berangkat</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://rihlahtourharamain.example/panduan/perlengkapan-yang-sering-terlewat-sebelum-keberangkatan</loc>
+    <priority>0.6</priority>
+  </url>
+</urlset>

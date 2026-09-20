@@ -1,0 +1,323 @@
+/**
+ * Route verification.
+ *
+ * Runs every route through the real component tree with react-dom/server and
+ * checks three things that are easy to get wrong in a single page app: a route
+ * throws while rendering, a route loses its expected content, or a link points
+ * at a path that no route serves.
+ *
+ * Run with: bun run verify
+ */
+import { renderToString } from "react-dom/server";
+import { StaticRouter } from "react-router-dom";
+import App from "../src/App";
+import {
+  buildConsultationSummary,
+  validateConsultation,
+  type FormValues,
+} from "../src/components/ConsultationForm";
+import { isPlaceholder, whatsappHref } from "../src/config/site";
+import { articles } from "../src/content/articles";
+import { faqs } from "../src/content/faq";
+import { packages } from "../src/content/packages";
+import { formatRupiah, sortByAvailability, splitDeparture } from "../src/lib/format";
+import {
+  deriveBudgetBands,
+  deriveMonths,
+  emptyFilter,
+  filterPackages,
+  isFilterActive,
+} from "../src/lib/packages";
+
+const staticPaths = [
+  "/",
+  "/paket-umrah",
+  "/paket-haji",
+  "/jadwal",
+  "/tentang-kami",
+  "/pembimbing",
+  "/panduan",
+  "/galeri",
+  "/faq",
+  "/legalitas",
+  "/konsultasi",
+  "/kontak",
+  "/kebijakan-privasi",
+  "/syarat-ketentuan",
+  "/pembatalan-refund",
+];
+
+const dynamicPaths = [
+  ...packages.map((item) => `/paket-${item.category}/${item.slug}`),
+  ...articles.map((item) => `/panduan/${item.slug}`),
+];
+
+const validPaths = new Set([...staticPaths, ...dynamicPaths]);
+
+interface Check {
+  path: string;
+  mustContain: string[];
+  /** Raw placeholders that would read as real data if they leaked through. */
+  mustNotContain?: string[];
+}
+
+const checks: Check[] = [
+  {
+    path: "/",
+    mustContain: ["Menuju Baitullah, Bersama Rihlah.", "Tersedia", "Belum dibuka"],
+    mustNotContain: ["[WHATSAPP_NUMBER]", "[NOMOR WHATSAPP]"],
+  },
+  {
+    path: "/paket-umrah",
+    mustContain: ["Umrah Reguler", "Umrah Plus", "Umrah Private", "Buka filter program"],
+  },
+  {
+    path: "/paket-umrah/reguler",
+    mustContain: ["Cara kerja program ini", "Konsultasikan Paket Ini", "Belum dipublikasikan"],
+  },
+  { path: "/paket-umrah/plus", mustContain: ["Umrah Plus"] },
+  { path: "/paket-umrah/private", mustContain: ["Umrah Private"] },
+  { path: "/paket-haji", mustContain: ["Cara memeriksa penyelenggara Haji", "Belum ditetapkan"] },
+  {
+    path: "/jadwal",
+    mustContain: ["Belum ada tanggal keberangkatan yang ditetapkan.", "Seat terbatas", "Penuh"],
+  },
+  { path: "/tentang-kami", mustContain: ["Rihlah Tour Haramain", "Yang tidak bisa kami janjikan"] },
+  { path: "/pembimbing", mustContain: ["Data pembimbing belum tersedia."] },
+  { path: "/panduan", mustContain: [articles[0].title, "Kategori"] },
+  { path: `/panduan/${articles[0].slug}`, mustContain: [articles[0].title, "Kembali ke semua panduan"] },
+  { path: "/galeri", mustContain: ["Slot foto", "Masjidil Haram dan sekitarnya"] },
+  { path: "/faq", mustContain: [faqs[0].question, faqs[9].question] },
+  {
+    path: "/legalitas",
+    mustContain: ["Data resmi penyelenggara", "Belum diisi", "Pemeriksaan identitas"],
+    // A bracketed placeholder must never render where a real value belongs.
+    mustNotContain: ["[NAMA BADAN USAHA]", "[NIB]", "[ALAMAT KANTOR]"],
+  },
+  {
+    path: "/kontak",
+    mustContain: ["Hubungi Rihlah Tour Haramain", "Kanal resmi"],
+    mustNotContain: ["[EMAIL RESMI]", "[TELEPON KANTOR]", "[ALAMAT KANTOR]", "[NOMOR WHATSAPP]"],
+  },
+  {
+    path: "/konsultasi",
+    mustContain: ["Konsultasikan Rencana Umrah Anda", "Kebutuhan khusus", "Nomor WhatsApp resmi belum diatur"],
+  },
+  { path: "/kebijakan-privasi", mustContain: ["berjalan sepenuhnya di peramban Anda"] },
+  { path: "/syarat-ketentuan", mustContain: ["Ruang lingkup", "Hukum yang berlaku"] },
+  { path: "/pembatalan-refund", mustContain: ["Status kebijakan ini", "Yang harus dijawab kebijakan ini"] },
+];
+
+/**
+ * Each entry pairs an unknown URL with the message that URL should produce.
+ * Unknown package and guide URLs get a domain specific explanation, which is
+ * more useful to a visitor than the generic page.
+ */
+const notFoundPaths: Array<{ path: string; message: string }> = [
+  { path: "/halaman-tidak-ada", message: "Halaman ini tidak ada" },
+  { path: "/paket-umrah/program-yang-tidak-ada", message: "Program yang Anda cari tidak ditemukan." },
+  { path: "/paket-haji/program-hilang", message: "Program yang Anda cari tidak ditemukan." },
+  { path: "/panduan/entri-hilang", message: "Panduan ini tidak ditemukan." },
+];
+
+let failures = 0;
+const linkTargets = new Set<string>();
+
+function report(ok: boolean, message: string) {
+  if (!ok) failures += 1;
+  console.log(`${ok ? "PASS" : "FAIL"}  ${message}`);
+}
+
+function render(path: string): string {
+  return renderToString(
+    <StaticRouter location={path}>
+      <App />
+    </StaticRouter>,
+  );
+}
+
+console.log("Route rendering and content checks");
+console.log("");
+
+for (const check of checks) {
+  try {
+    const html = render(check.path);
+    const missing = check.mustContain.filter((needle) => !html.includes(needle));
+    const leaked = (check.mustNotContain ?? []).filter((needle) => html.includes(needle));
+    report(
+      missing.length === 0 && leaked.length === 0,
+      `${check.path} renders${
+        missing.length > 0 ? ` but is missing: ${missing.join(" | ")}` : ""
+      }${leaked.length > 0 ? ` and leaks placeholders: ${leaked.join(" | ")}` : ""}`,
+    );
+
+    for (const match of html.matchAll(/href="(\/[^"#]*)"/g)) {
+      linkTargets.add(match[1].split("?")[0].replace(/\/$/, "") || "/");
+    }
+  } catch (error) {
+    report(false, `${check.path} threw: ${(error as Error).message}`);
+  }
+}
+
+console.log("");
+console.log("Fallback routes");
+for (const entry of notFoundPaths) {
+  try {
+    const html = render(entry.path);
+    report(html.includes(entry.message), `${entry.path} explains that nothing is here`);
+  } catch (error) {
+    report(false, `${entry.path} threw: ${(error as Error).message}`);
+  }
+}
+
+console.log("");
+console.log("Every internal link resolves to a route");
+const deadLinks = [...linkTargets].filter((target) => !validPaths.has(target)).sort();
+report(deadLinks.length === 0, `internal links checked: ${linkTargets.size}`);
+for (const dead of deadLinks) {
+  console.log(`      dead link: ${dead}`);
+}
+
+console.log("");
+console.log("Em dash sweep across rendered output");
+const emDashRoutes = [...staticPaths, ...dynamicPaths].filter((path) => render(path).includes("\u2014"));
+report(emDashRoutes.length === 0, "no rendered route contains an em dash");
+for (const route of emDashRoutes) {
+  console.log(`      contains an em dash: ${route}`);
+}
+
+console.log("");
+console.log("Mobile safety in the rendered markup");
+
+/**
+ * Horizontal overflow on a phone usually comes from a track or width that is
+ * fixed at every viewport. Every fixed track in this project has to sit behind
+ * a `sm:` or `lg:` prefix, which is checkable without a browser.
+ */
+const mobileRisks = [...staticPaths, ...dynamicPaths].flatMap((path) => {
+  const html = render(path);
+  const tokens = [...html.matchAll(/class="([^"]*)"/g)]
+    .flatMap((match) => match[1].split(/\s+/))
+    .filter(Boolean);
+  const offenders = tokens.filter(
+    (token) =>
+      /^grid-cols-\[/.test(token) ||
+      /^w-\[/.test(token) ||
+      /^min-w-\[/.test(token) ||
+      /^whitespace-nowrap$/.test(token),
+  );
+  return offenders.map((token) => `${path} uses ${token}`);
+});
+report(
+  mobileRisks.length === 0,
+  "no fixed grid tracks, widths, or nowrap text apply at every viewport",
+);
+for (const risk of mobileRisks) {
+  console.log(`      ${risk}`);
+}
+
+console.log("");
+console.log("Filter, format and form logic");
+
+const umrahOnly = filterPackages(packages, { ...emptyFilter, category: "umrah" }, []);
+report(umrahOnly.length === 3, "category filter returns the three Umrah programs");
+
+const hajiOnly = filterPackages(packages, { ...emptyFilter, category: "haji" }, []);
+report(hajiOnly.length === 0, "Haji filter returns nothing while no Haji program exists");
+
+const privateOnly = filterPackages(packages, { ...emptyFilter, type: "private" }, []);
+report(
+  privateOnly.length === 1 && privateOnly[0].slug === "private",
+  "program filter narrows to a single program",
+);
+
+const keyword = filterPackages(packages, { ...emptyFilter, keyword: "keluarga" }, []);
+report(keyword.length > 0, "keyword search matches program copy");
+
+const noKeywordMatch = filterPackages(packages, { ...emptyFilter, keyword: "zzzz" }, []);
+report(noKeywordMatch.length === 0, "keyword search can produce the empty state");
+
+report(!isFilterActive(emptyFilter), "a fresh filter is not reported as active");
+report(isFilterActive({ ...emptyFilter, keyword: "a" }), "a typed keyword is reported as active");
+
+// Both controls read published data, so they must stay empty while none exists.
+report(deriveMonths(packages).length === 0, "month options stay empty without departure data");
+report(deriveBudgetBands(packages).length === 0, "budget bands stay empty without prices");
+
+const priced = [{ ...packages[0], price: 29_500_000 }];
+report(deriveBudgetBands(priced).length > 0, "budget bands appear once a price exists");
+const banded = deriveBudgetBands(priced);
+const pricedInBand = filterPackages(priced, { ...emptyFilter, budget: banded[0].id }, banded);
+report(pricedInBand.length === 1, "a budget band can match a published price");
+
+report(formatRupiah(29_500_000) === "Rp29.500.000", "prices render in Indonesian format");
+report(formatRupiah(null) === null, "a missing price formats as null, not as zero");
+
+const split = splitDeparture("2027-01-14");
+report(
+  split?.day === "14" && split?.rest === "Januari 2027",
+  "the departure date splits into day and month for the date column",
+);
+report(splitDeparture(null) === null, "a missing departure date splits to null");
+
+const sorted = sortByAvailability([
+  { ...packages[2], availability: "full" as const },
+  { ...packages[1], availability: "available" as const },
+]);
+report(sorted[0].availability === "available", "available departures sort ahead of full ones");
+
+report(isPlaceholder("[WHATSAPP_NUMBER]"), "a bracketed value counts as a placeholder");
+report(!isPlaceholder("628123456789"), "a real value does not count as a placeholder");
+report(isPlaceholder(null) && isPlaceholder(""), "empty values count as placeholders");
+report(whatsappHref() === null, "no WhatsApp link is built while the number is unset");
+
+const blankForm: FormValues = {
+  nama: "",
+  whatsapp: "",
+  jumlahJamaah: "",
+  jenis: "",
+  bulan: "",
+  program: "",
+  kebutuhan: [],
+  pesan: "",
+};
+const blankErrors = validateConsultation(blankForm);
+report(
+  Object.keys(blankErrors).length === 6,
+  "an empty form reports one error per required field",
+);
+
+const badPhone = validateConsultation({ ...blankForm, nama: "A", whatsapp: "12" });
+report(Boolean(badPhone.nama) && Boolean(badPhone.whatsapp), "short values are rejected");
+
+const validForm: FormValues = {
+  nama: "Aisyah Rahman",
+  whatsapp: "081234567890",
+  jumlahJamaah: "3",
+  jenis: "umrah",
+  bulan: "3-6",
+  program: "Private",
+  kebutuhan: ["Jamaah lansia"],
+  pesan: "Berangkat dengan orang tua.",
+};
+report(
+  Object.keys(validateConsultation(validForm)).length === 0,
+  "a complete form passes validation",
+);
+
+const summary = buildConsultationSummary(validForm);
+report(
+  ["Aisyah Rahman", "081234567890", "3", "Private", "Jamaah lansia"].every((part) =>
+    summary.includes(part),
+  ),
+  "the summary carries every field the jamaah filled in",
+);
+report(
+  buildConsultationSummary({ ...validForm, kebutuhan: [] }).includes("Kebutuhan khusus: Tidak ada"),
+  "an empty optional list still renders in the summary",
+);
+report(!summary.includes("\u2014"), "the generated summary contains no em dash");
+
+console.log("");
+console.log(`${failures === 0 ? "ALL CHECKS PASSED" : `${failures} CHECK(S) FAILED`}`);
+process.exit(failures === 0 ? 0 : 1);

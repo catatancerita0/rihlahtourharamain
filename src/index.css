@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Design tokens for Rihlah Tour Haramain.
+  Palette is 2 core colors plus one accent. Every pairing used in the UI was
+  measured: gold (#C9A45C) only reaches 2.27:1 on light surfaces, so it never
+  carries text there. On emerald it reaches 5.14:1 and is safe.
+*/
+:root {
+  --emerald-900: #0b2f29;
+  --emerald-800: #0f3d35;
+  --emerald-50: #edf3f1;
+  --shell: #fcfbf7;
+  --cream: #f7f3ea;
+  --cream-deep: #f0ebdf;
+  --charcoal: #202522;
+  --charcoal-soft: #4c5a55;
+  --charcoal-muted: #6b7a74;
+  --gold: #c9a45c;
+
+  /* Interactive boundaries must clear 3:1. Decorative hairlines are a
+     separate, clearly non-interactive token so they never carry meaning. */
+  --line-interactive: #6e8c84;
+  --line-hairline: #dce8e4;
+  --line-on-dark: #6b8a82;
+}
+
+@layer base {
+  html {
+    /* Prevents a stray wide element from turning the whole page sideways. */
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-shell text-charcoal font-sans antialiased;
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* A visible focus indicator on every surface. The emerald ring disappears on
+     emerald panels, so dark sections switch to the gold register. */
+  :focus-visible {
+    outline: 2px solid var(--emerald-800);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  .on-dark :focus-visible,
+  .on-dark:focus-visible {
+    outline-color: var(--gold);
+  }
+
+  ::selection {
+    background: var(--emerald-800);
+    color: var(--shell);
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  /* Safari still draws its own disclosure triangle on summary. The accordion
+     ships its own indicator, so the native marker has to go. */
+  summary::-webkit-details-marker {
+    display: none;
+  }
+}
+
+@layer components {
+  .shell-container {
+    @apply mx-auto w-full max-w-shell px-5 sm:px-8 lg:px-12;
+  }
+
+  /* Section rhythm: the three steps below are picked per section so the page
+     does not read as one flat strip. */
+  .section {
+    @apply py-section;
+  }
+
+  .section-tight {
+    @apply py-section-sm;
+  }
+
+  .section-roomy {
+    @apply py-section-lg;
+  }
+
+  .eyebrow {
+    @apply text-label font-semibold uppercase text-charcoal-muted;
+  }
+
+  .on-dark .eyebrow {
+    @apply text-emerald-300;
+  }
+
+  .hairline {
+    @apply border-0 border-t border-emerald-100;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/*
+  Scroll reveal. MOTION 1 means motion only explains hierarchy, never decorates,
+  so the reveal is a single short translate with no loops or staggering.
+*/
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 520ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 520ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .reveal,
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

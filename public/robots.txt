@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Replace the domain below with the live address before publishing.
+Sitemap: https://rihlahtourharamain.example/sitemap.xml
