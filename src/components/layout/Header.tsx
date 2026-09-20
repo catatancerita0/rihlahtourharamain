@@ -88,7 +88,10 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <LanguageSwitcher className="hidden xl:flex" />
+            {/* Visible from the smallest screen that can fit it, rather than only
+                beside the full navigation. Hidden below sm because the panel
+                carries the same control there. */}
+            <LanguageSwitcher className="hidden sm:flex" />
 
             <ButtonLink to="/konsultasi" variant="accent" className="hidden sm:inline-flex">
               {copy.cta.consult}
@@ -143,7 +146,7 @@ export function Header() {
             <ButtonLink to="/konsultasi" variant="primary" size="lg" className="mt-5 w-full">
               {copy.cta.consult}
             </ButtonLink>
-            <div className="mt-5 border-t border-emerald-100 pt-5">
+            <div className="mt-5 border-t border-emerald-100 pt-5 sm:hidden">
               <LanguageSwitcher onLight />
             </div>
           </nav>

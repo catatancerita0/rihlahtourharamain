@@ -26,7 +26,9 @@ export function LanguageSwitcher({ className = "", onLight = false }: LanguageSw
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <span className={`text-label font-semibold uppercase ${labelClass}`}>
+      {/* The label is dropped on the narrowest screens so the switch always fits
+          beside the menu button instead of being pushed out of the bar. */}
+      <span className={`text-label font-semibold uppercase ${labelClass} hidden sm:inline`}>
         {copy.language.label}
       </span>
       <div

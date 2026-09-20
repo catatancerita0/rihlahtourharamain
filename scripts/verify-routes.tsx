@@ -233,6 +233,46 @@ for (const risk of mobileRisks) {
 }
 
 console.log("");
+console.log("Interactive elements that carry no visible text");
+
+/**
+ * A control with no readable text and no accessible name cannot be used, and
+ * one hidden at every viewport is worse than absent. Hiding behind a
+ * breakpoint is deliberate, so only an unprefixed class is reported.
+ */
+const namelessControls: string[] = [];
+for (const path of [...staticPaths, ...dynamicPaths]) {
+  const html = render(path);
+  for (const match of html.matchAll(/<(a|button)\b([^>]*)>([\s\S]*?)<\/\1>/g)) {
+    const tag = match[1] ?? "";
+    const attrs = match[2] ?? "";
+    const inner = match[3] ?? "";
+    const visibleText = inner.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    const className = /class="([^"]*)"/.exec(attrs)?.[1] ?? "";
+
+    if (!visibleText && !/sr-only/.test(inner) && !/aria-label="[^"]+"/.test(attrs)) {
+      namelessControls.push(`${path}: <${tag}> renders with no accessible name`);
+    }
+    // `hidden sm:inline-flex` is a deliberate mobile collapse, so a
+    // breakpoint-prefixed display utility anywhere in the list clears it.
+    const hasBreakpointDisplay =
+      /(sm|md|lg|xl|2xl):(block|inline-block|flex|inline-flex|grid|inline-grid|table)\b/.test(
+        className,
+      );
+    if (/(^|\s)hidden(\s|$)/.test(className) && !hasBreakpointDisplay) {
+      namelessControls.push(`${path}: <${tag}> is hidden at every viewport`);
+    }
+  }
+}
+report(
+  namelessControls.length === 0,
+  "every link and button is named and reachable at some width",
+);
+for (const item of namelessControls) {
+  console.log(`      ${item}`);
+}
+
+console.log("");
 console.log("Filter, format and form logic");
 
 const umrahOnly = filterPackages(packages, { ...emptyFilter, category: "umrah" }, []);
