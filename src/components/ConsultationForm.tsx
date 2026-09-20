@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { isPlaceholder, site, whatsappHref } from "../config/site";
-import { Button } from "./ui/Button";
+import { Button, ButtonAnchor } from "./ui/Button";
 import { Input, Select, Textarea } from "./ui/Field";
+import { WhatsAppGlyph } from "./WhatsAppButton";
 
 export interface FormValues {
   nama: string;
@@ -70,6 +71,13 @@ export function validateConsultation(values: FormValues): Errors {
   return errors;
 }
 
+const jenisLabels: Record<string, string> = { umrah: "Umrah", haji: "Haji" };
+
+/**
+ * Written for a WhatsApp chat rather than as a data dump. WhatsApp renders a
+ * pair of asterisks as bold, so the heading stands out and every answer keeps
+ * its own line, which is what the team reads on a phone.
+ */
 export function buildConsultationSummary(values: FormValues): string {
   const bulanLabel =
     bulanOptions.find((option) => option.value === values.bulan)?.label ?? values.bulan;
@@ -77,10 +85,11 @@ export function buildConsultationSummary(values: FormValues): string {
   return [
     site.whatsappMessage,
     "",
+    "*Ringkasan konsultasi*",
     `Nama: ${values.nama.trim()}`,
     `Nomor WhatsApp: ${values.whatsapp.trim()}`,
     `Jumlah jamaah: ${values.jumlahJamaah}`,
-    `Jenis perjalanan: ${values.jenis}`,
+    `Jenis perjalanan: ${jenisLabels[values.jenis] ?? values.jenis}`,
     `Perkiraan keberangkatan: ${bulanLabel}`,
     `Preferensi program: ${values.program}`,
     `Kebutuhan khusus: ${values.kebutuhan.length > 0 ? values.kebutuhan.join(", ") : "Tidak ada"}`,
@@ -129,20 +138,25 @@ export function ConsultationForm() {
     }));
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
+  /** Blocks every handoff until the answers are complete, and says which one is missing. */
+  function answersAreComplete(): boolean {
     const nextErrors = validateConsultation(values);
     setErrors(nextErrors);
 
     const firstError = fieldOrder.find((field) => nextErrors[field]);
-    if (firstError) {
-      setStatus("idle");
-      const node = formRef.current?.querySelector<HTMLElement>(`[name="${firstError}"]`);
-      node?.focus();
-      return;
-    }
+    if (!firstError) return true;
 
+    setStatus("idle");
+    formRef.current?.querySelector<HTMLElement>(`[name="${firstError}"]`)?.focus();
+    return false;
+  }
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!answersAreComplete()) return;
+
+    // Reached by pressing Enter inside a field, since the visible send control
+    // is the link below rather than a submit button.
     if (directHref) {
       window.open(directHref, "_blank", "noopener,noreferrer");
       setStatus("handoff");
@@ -150,6 +164,14 @@ export function ConsultationForm() {
     }
 
     setStatus("awaitingChannel");
+  }
+
+  function handleHandoff(event: React.MouseEvent<HTMLAnchorElement>) {
+    if (answersAreComplete()) {
+      setStatus("handoff");
+      return;
+    }
+    event.preventDefault();
   }
 
   async function handleCopy() {
@@ -165,14 +187,14 @@ export function ConsultationForm() {
   return (
     <form ref={formRef} onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
       {channelMissing ? (
-        <div className="rounded-lg border border-emerald-200 bg-cream p-5">
+        <div id="konsul-kanal" className="rounded-lg border border-emerald-200 bg-cream p-5">
           <p className="text-body font-semibold text-emerald-900">
             Nomor WhatsApp resmi belum diatur.
           </p>
           <p className="mt-2 max-w-prose text-body-sm text-charcoal-soft">
-            Formulir ini tetap memeriksa isian Anda, lalu menyusun ringkasan yang bisa Anda salin.
-            Begitu nomor resmi diisi pada konfigurasi situs, tombol kirim akan langsung membuka
-            WhatsApp dengan ringkasan yang sama.
+            Tombol kirim di bawah ini membuka WhatsApp dengan pesan yang sudah terisi. Selama nomor
+            resmi belum diisi pada konfigurasi situs, tombolnya belum bisa dipakai dan Anda bisa
+            menyusun ringkasan yang sama untuk dikirim lewat kanal resmi di halaman kontak.
           </p>
         </div>
       ) : null}
@@ -290,13 +312,39 @@ export function ConsultationForm() {
         hint="Misalnya kota asal, kebutuhan kamar, atau pertanyaan tentang fasilitas."
       />
 
-      <div className="flex flex-wrap items-center gap-4">
-        <Button type="submit" size="lg" disabled={status === "copying"}>
-          {directHref ? "Kirim lewat WhatsApp" : "Susun ringkasan konsultasi"}
-        </Button>
-        <p className="text-body-sm text-charcoal-muted">
-          Kami tidak meminta dokumen atau pembayaran apa pun sebelum ada penawaran tertulis.
-        </p>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-4">
+          {/* A real link instead of a scripted button, so popup blockers, middle
+              click and the mobile WhatsApp app all behave the way links do. */}
+          {directHref ? (
+            <ButtonAnchor
+              href={directHref}
+              size="lg"
+              target="_blank"
+              rel="noreferrer"
+              onClick={handleHandoff}
+            >
+              <WhatsAppGlyph />
+              Kirim ke WhatsApp
+            </ButtonAnchor>
+          ) : (
+            <Button type="button" size="lg" disabled aria-describedby="konsul-kanal">
+              <WhatsAppGlyph />
+              Kirim ke WhatsApp
+            </Button>
+          )}
+          <p className="text-body-sm text-charcoal-muted">
+            Kami tidak meminta dokumen atau pembayaran apa pun sebelum ada penawaran tertulis.
+          </p>
+        </div>
+
+        {/* Kept while the official number is missing, because handing the same
+            summary over for copying is still better than no path at all. */}
+        {channelMissing ? (
+          <Button type="submit" variant="outline" size="lg" className="self-start">
+            Susun ringkasan untuk disalin
+          </Button>
+        ) : null}
       </div>
 
       {Object.keys(errors).length > 0 ? (
@@ -309,7 +357,7 @@ export function ConsultationForm() {
         <StatusBlock
           tone="success"
           title="WhatsApp dibuka di tab baru."
-          body="Ringkasan konsultasi sudah tertulis di dalam pesan. Kirim pesan itu untuk melanjutkan, dan tim akan membalas pada jam layanan."
+          body="Pesan sudah terisi ringkasan konsultasi Anda. Tekan kirim di WhatsApp untuk melanjutkan, dan tim akan membalas pada jam layanan."
         />
       ) : null}
 

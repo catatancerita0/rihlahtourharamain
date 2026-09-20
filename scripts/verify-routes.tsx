@@ -16,7 +16,7 @@ import {
   validateConsultation,
   type FormValues,
 } from "../src/components/ConsultationForm";
-import { isPlaceholder, whatsappHref } from "../src/config/site";
+import { isPlaceholder, site, whatsappHref } from "../src/config/site";
 import { LanguageProvider } from "../src/i18n/LanguageProvider";
 import type { Lang } from "../src/i18n/types";
 import { articles } from "../src/content/articles";
@@ -390,6 +390,41 @@ report(
   "an empty optional list still renders in the summary",
 );
 report(!summary.includes("\u2014"), "the generated summary contains no em dash");
+report(summary.includes("*Ringkasan konsultasi*"), "the chat message has a heading WhatsApp renders as bold");
+report(
+  summary.split("\n").length === 11,
+  "every answer sits on its own line in the chat message",
+);
+
+/**
+ * The direct handoff can only be exercised with a number present. The config
+ * value is swapped for two renders and restored immediately after, so the
+ * missing-number path stays the one the untouched app runs with.
+ */
+const configuredNumber = site.whatsappNumber;
+const configuredDisplay = site.whatsappDisplay;
+site.whatsappNumber = "628123456789";
+site.whatsappDisplay = "+62 812-3456-789";
+const configuredHtml = render("/konsultasi");
+site.whatsappNumber = configuredNumber;
+site.whatsappDisplay = configuredDisplay;
+
+report(
+  configuredHtml.includes('href="https://wa.me/628123456789?text='),
+  "the send control becomes a real WhatsApp link once the number is set",
+);
+report(
+  configuredHtml.includes("Kirim ke WhatsApp"),
+  "the send control names the channel it opens",
+);
+report(
+  !configuredHtml.includes("Nomor WhatsApp resmi belum diatur"),
+  "the missing-channel notice disappears once the number is set",
+);
+report(
+  render("/konsultasi").includes("Nomor WhatsApp resmi belum diatur"),
+  "the missing-channel notice returns while the number is a placeholder",
+);
 
 console.log("");
 console.log(`${failures === 0 ? "ALL CHECKS PASSED" : `${failures} CHECK(S) FAILED`}`);
