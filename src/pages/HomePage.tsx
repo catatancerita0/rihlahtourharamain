@@ -18,6 +18,7 @@ import { packages, umrahPrograms } from "../content/packages";
 import { journeySteps, reasons } from "../content/site-content";
 import { site, whatsappHref } from "../config/site";
 import { usePackageFilter } from "../hooks/usePackageFilter";
+import { useCopy } from "../i18n/LanguageProvider";
 import { programLabels } from "../lib/packages";
 
 const featuredArticles = articles.slice(0, 1);
@@ -27,6 +28,7 @@ const homeFaqs = faqs.slice(0, 6);
 export function HomePage() {
   const finder = usePackageFilter(packages);
   const [filterOpen, setFilterOpen] = useState(false);
+  const operatingNote = useCopy(site.operatingNote);
   const wa = whatsappHref();
 
   return (
@@ -44,9 +46,7 @@ export function HomePage() {
             <div className="flex flex-col gap-6">
               <p className="eyebrow">Umrah &amp; Haji untuk jamaah Indonesia</p>
               <h1 className="text-display-xl">Menuju Baitullah, Bersama Rihlah.</h1>
-              <p className="max-w-prose text-body-lg text-emerald-100">
-                {site.operatingNote}
-              </p>
+              <p className="max-w-prose text-body-lg text-emerald-100">{operatingNote}</p>
               <div className="flex flex-wrap gap-3">
                 <ButtonLink to="/paket-umrah" variant="primary" size="lg">
                   Lihat Paket Umrah

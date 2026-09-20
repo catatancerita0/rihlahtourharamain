@@ -1,16 +1,19 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { site } from "../../config/site";
+import { useCopy } from "../../i18n/LanguageProvider";
+import { chrome, type ChromeCopy } from "../../i18n/strings";
 import { ButtonLink } from "../ui/Button";
+import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 
-const navItems = [
-  { label: "Beranda", to: "/" },
-  { label: "Paket Umrah", to: "/paket-umrah" },
-  { label: "Paket Haji", to: "/paket-haji" },
-  { label: "Jadwal", to: "/jadwal" },
-  { label: "Tentang Kami", to: "/tentang-kami" },
-  { label: "Panduan Jamaah", to: "/panduan" },
-  { label: "FAQ", to: "/faq" },
+const navItems: Array<{ label: keyof ChromeCopy["nav"]; to: string }> = [
+  { label: "home", to: "/" },
+  { label: "umrah", to: "/paket-umrah" },
+  { label: "haji", to: "/paket-haji" },
+  { label: "schedule", to: "/jadwal" },
+  { label: "about", to: "/tentang-kami" },
+  { label: "guide", to: "/panduan" },
+  { label: "faq", to: "/faq" },
 ];
 
 const linkBase =
@@ -23,6 +26,7 @@ export function Header() {
   const toggleRef = useRef<HTMLButtonElement | null>(null);
   const panelId = useId();
   const { pathname } = useLocation();
+  const copy = useCopy(chrome);
 
   // A route change while the menu is open would leave it covering the new page.
   useEffect(() => {
@@ -55,7 +59,7 @@ export function Header() {
           <Link
             to="/"
             className="flex flex-col rounded-sm text-shell"
-            aria-label={`${site.brand}, kembali ke beranda`}
+            aria-label={`${site.brand}, ${copy.nav.backHome}`}
           >
             <span className="font-display text-2xl leading-none tracking-tight lg:text-[1.75rem]">
               Rihlah
@@ -65,7 +69,7 @@ export function Header() {
             </span>
           </Link>
 
-          <nav aria-label="Navigasi utama" className="hidden xl:block">
+          <nav aria-label={copy.nav.main} className="hidden xl:block">
             <ul className="flex items-center gap-1">
               {navItems.map((item) => (
                 <li key={item.to}>
@@ -76,7 +80,7 @@ export function Header() {
                       `${linkBase} ${isActive ? linkLightActive : linkLight}`
                     }
                   >
-                    {item.label}
+                    {copy.nav[item.label]}
                   </NavLink>
                 </li>
               ))}
@@ -84,8 +88,10 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-3">
+            <LanguageSwitcher className="hidden xl:flex" />
+
             <ButtonLink to="/konsultasi" variant="accent" className="hidden sm:inline-flex">
-              Konsultasi Umrah
+              {copy.cta.consult}
             </ButtonLink>
 
             {/* Labelled, not a bare icon, so the control explains itself. */}
@@ -105,7 +111,7 @@ export function Header() {
                   strokeLinecap="round"
                 />
               </svg>
-              {menuOpen ? "Tutup" : "Menu"}
+              {menuOpen ? copy.nav.close : copy.nav.menu}
             </button>
           </div>
         </div>
@@ -116,7 +122,7 @@ export function Header() {
           id={panelId}
           className="absolute inset-x-0 top-full max-h-[75dvh] overflow-y-auto border-t border-emerald-700 bg-shell shadow-panel xl:hidden"
         >
-          <nav aria-label="Navigasi utama versi seluler" className="shell-container py-4">
+          <nav aria-label={copy.nav.mainMobile} className="shell-container py-4">
             <ul className="flex flex-col divide-y divide-emerald-100">
               {navItems.map((item) => (
                 <li key={item.to}>
@@ -129,14 +135,17 @@ export function Header() {
                       }`
                     }
                   >
-                    {item.label}
+                    {copy.nav[item.label]}
                   </NavLink>
                 </li>
               ))}
             </ul>
             <ButtonLink to="/konsultasi" variant="primary" size="lg" className="mt-5 w-full">
-              Konsultasi Umrah
+              {copy.cta.consult}
             </ButtonLink>
+            <div className="mt-5 border-t border-emerald-100 pt-5">
+              <LanguageSwitcher onLight />
+            </div>
           </nav>
         </div>
       ) : null}

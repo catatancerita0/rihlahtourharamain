@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { canonicalFor, site } from "../config/site";
+import { useLang } from "../i18n/LanguageProvider";
+import { languageMeta } from "../i18n/types";
 
 interface SeoProps {
   title: string;
@@ -37,6 +39,7 @@ function upsertCanonical(href: string) {
  */
 export function Seo({ title, description }: SeoProps) {
   const { pathname } = useLocation();
+  const lang = useLang();
 
   useEffect(() => {
     const fullTitle = title.includes(site.brand) ? title : `${title} | ${site.brand}`;
@@ -44,6 +47,7 @@ export function Seo({ title, description }: SeoProps) {
 
     if (description) upsertMeta("name", "description", description);
     upsertMeta("name", "twitter:card", "summary_large_image");
+    upsertMeta("property", "og:locale", languageMeta[lang].ogLocale);
     upsertMeta("name", "twitter:title", fullTitle);
     upsertMeta("property", "og:title", fullTitle);
 
@@ -55,7 +59,7 @@ export function Seo({ title, description }: SeoProps) {
     const url = canonicalFor(pathname);
     upsertMeta("property", "og:url", url);
     upsertCanonical(url);
-  }, [title, description, pathname]);
+  }, [title, description, pathname, lang]);
 
   return null;
 }

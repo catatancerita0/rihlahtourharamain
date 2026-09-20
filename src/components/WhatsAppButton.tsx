@@ -1,14 +1,36 @@
 import { Link, useLocation } from "react-router-dom";
-import { isPlaceholder, site, whatsappHref } from "../config/site";
+import { site, whatsappHref } from "../config/site";
+import { useCopy } from "../i18n/LanguageProvider";
+import type { Localized } from "../i18n/types";
+
+const idCopy = {
+  consult: "Konsultasi",
+  numberUnset: "Nomor resmi belum diatur",
+  whatsappCta: "Konsultasi WhatsApp",
+  openContact: "nomor WhatsApp resmi belum diatur, buka halaman kontak",
+  openWhatsapp: "Konsultasi melalui WhatsApp ke",
+};
 
 /**
  * The number is not published yet, so the floating control must not pretend to
  * open a chat. It links to the contact page instead, where the state of the
  * official channels is explained in full.
  */
+const copy: Localized<typeof idCopy> = {
+  id: idCopy,
+  en: {
+    consult: "Talk to us",
+    numberUnset: "Official number not set yet",
+    whatsappCta: "Chat on WhatsApp",
+    openContact: "the official WhatsApp number is not set yet, open the contact page",
+    openWhatsapp: "Consult over WhatsApp with",
+  },
+};
+
 export function WhatsAppButton() {
   const href = whatsappHref();
   const { pathname } = useLocation();
+  const text = useCopy(copy);
 
   // Package detail pages already carry a sticky consultation bar on mobile, so
   // the floating control would sit on top of it and block the price.
@@ -23,12 +45,12 @@ export function WhatsAppButton() {
       <Link
         to="/kontak"
         className={`${shell} border border-emerald-800 bg-shell text-emerald-900 hover:bg-cream`}
-        aria-label={`Konsultasi: nomor WhatsApp resmi belum diatur, buka halaman kontak ${site.brand}`}
+        aria-label={`${text.consult}: ${text.openContact} ${site.brand}`}
       >
         <WhatsAppGlyph />
         <span className="flex flex-col leading-tight">
-          <span className="text-body-sm font-semibold">Konsultasi</span>
-          <span className="text-label text-charcoal-soft">Nomor resmi belum diatur</span>
+          <span className="text-body-sm font-semibold">{text.consult}</span>
+          <span className="text-label text-charcoal-soft">{text.numberUnset}</span>
         </span>
       </Link>
     );
@@ -40,10 +62,10 @@ export function WhatsAppButton() {
       target="_blank"
       rel="noreferrer"
       className={`${shell} bg-emerald-800 text-shell hover:bg-emerald-700`}
-      aria-label={`Konsultasi melalui WhatsApp ke ${site.brand}`}
+      aria-label={`${text.openWhatsapp} ${site.brand}`}
     >
       <WhatsAppGlyph />
-      <span className="text-body-sm font-semibold">Konsultasi WhatsApp</span>
+      <span className="text-body-sm font-semibold">{text.whatsappCta}</span>
     </a>
   );
 }
@@ -58,5 +80,3 @@ export function WhatsAppGlyph() {
     </svg>
   );
 }
-
-export const whatsappConfigured = !isPlaceholder(site.whatsappNumber);

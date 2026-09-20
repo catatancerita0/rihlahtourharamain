@@ -1,3 +1,5 @@
+import type { Localized } from "../i18n/types";
+
 /**
  * Every value that the real business must supply lives here and nowhere else.
  * Bracketed strings are unresolved placeholders: the UI detects them and shows
@@ -24,9 +26,15 @@ export function canonicalFor(pathname: string): string {
 export const site = {
   brand: "Rihlah Tour Haramain",
   shortBrand: "Rihlah",
-  tagline: "Menemani perjalanan menuju Baitullah.",
-  operatingNote:
-    "Rencanakan perjalanan ibadah dengan informasi yang jelas dan pendampingan yang terarah.",
+  // Brand lines travel with the language switch like any other copy.
+  tagline: {
+    id: "Menemani perjalanan menuju Baitullah.",
+    en: "Walking beside you on the way to Baitullah.",
+  } satisfies Localized<string>,
+  operatingNote: {
+    id: "Rencanakan perjalanan ibadah dengan informasi yang jelas dan pendampingan yang terarah.",
+    en: "Plan your worship journey with clear information and support that stays with you.",
+  } satisfies Localized<string>,
 
   // Digits only, international format, without a leading plus sign.
   whatsappNumber: "[WHATSAPP_NUMBER]",

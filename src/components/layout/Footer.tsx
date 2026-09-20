@@ -1,43 +1,44 @@
 import { Link } from "react-router-dom";
 import { contactHref, isPlaceholder, site, whatsappHref } from "../../config/site";
+import { useCopy } from "../../i18n/LanguageProvider";
+import { chrome, type ChromeCopy } from "../../i18n/strings";
 import { GeometricMotif } from "../ui/GeometricMotif";
 
-const navigationLinks = [
-  { label: "Paket", to: "/paket-umrah" },
-  { label: "Jadwal", to: "/jadwal" },
-  { label: "Tentang Kami", to: "/tentang-kami" },
-  { label: "Panduan", to: "/panduan" },
-  { label: "Galeri", to: "/galeri" },
-  { label: "FAQ", to: "/faq" },
+const navigationLinks: Array<{ label: keyof ChromeCopy["footer"]; to: string }> = [
+  { label: "packages", to: "/paket-umrah" },
+  { label: "schedule", to: "/jadwal" },
+  { label: "about", to: "/tentang-kami" },
+  { label: "guide", to: "/panduan" },
+  { label: "gallery", to: "/galeri" },
+  { label: "faq", to: "/faq" },
 ];
 
-const legalLinks = [
-  { label: "Kebijakan Privasi", to: "/kebijakan-privasi" },
-  { label: "Syarat & Ketentuan", to: "/syarat-ketentuan" },
-  { label: "Pembatalan & Refund", to: "/pembatalan-refund" },
-  { label: "Legalitas", to: "/legalitas" },
+const legalLinks: Array<{ label: keyof ChromeCopy["footer"]; to: string }> = [
+  { label: "privacy", to: "/kebijakan-privasi" },
+  { label: "terms", to: "/syarat-ketentuan" },
+  { label: "cancellation", to: "/pembatalan-refund" },
+  { label: "licensing", to: "/legalitas" },
 ];
 
 const inlineLink = "text-body-sm text-emerald-100 underline-offset-4 hover:text-shell hover:underline";
 
-/** Config values that are still bracketed placeholders render as a labelled gap. */
-function OrPending({ value, label }: { value: string; label: string }) {
-  if (isPlaceholder(value)) {
-    return (
-      <span className="text-emerald-300">
-        {label} belum diisi
-      </span>
-    );
-  }
-  return <>{value}</>;
-}
-
 export function Footer() {
+  const copy = useCopy(chrome);
+  const tagline = useCopy(site.tagline);
+
   const wa = whatsappHref();
   const mail = contactHref(site.email, "mailto");
   const socialEntries = Object.entries(site.social).filter(
     (entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0,
   );
+
+  /** Config values that are still bracketed placeholders render as a labelled gap. */
+  function ValueOrPending({ value }: { value: string }) {
+    if (isPlaceholder(value)) {
+      return <span className="text-emerald-300">{copy.state.pendingShort}</span>;
+    }
+    return <>{value}</>;
+  }
 
   return (
     <footer className="on-dark bg-emerald-900 text-emerald-100">
@@ -49,43 +50,49 @@ export function Footer() {
           <div className="flex flex-col gap-4">
             <div>
               <p className="font-display text-3xl text-shell">{site.brand}</p>
-              <p className="mt-1 text-body text-emerald-100">{site.tagline}</p>
+              <p className="mt-1 text-body text-emerald-100">{tagline}</p>
             </div>
             <dl className="mt-2 grid gap-3 text-body-sm sm:grid-cols-2">
               <div>
-                <dt className="text-label font-semibold uppercase text-emerald-300">WhatsApp</dt>
+                <dt className="text-label font-semibold uppercase text-emerald-300">
+                  {copy.footer.whatsappLabel}
+                </dt>
                 <dd className="mt-1">
                   {wa ? (
                     <a href={wa} target="_blank" rel="noreferrer" className={inlineLink}>
                       {site.whatsappDisplay}
                     </a>
                   ) : (
-                    <OrPending value={site.whatsappDisplay} label="Nomor WhatsApp" />
+                    <ValueOrPending value={site.whatsappDisplay} />
                   )}
                 </dd>
               </div>
               <div>
-                <dt className="text-label font-semibold uppercase text-emerald-300">Email</dt>
+                <dt className="text-label font-semibold uppercase text-emerald-300">
+                  {copy.footer.emailLabel}
+                </dt>
                 <dd className="mt-1">
                   {mail ? (
                     <a href={mail} className={inlineLink}>
                       {site.email}
                     </a>
                   ) : (
-                    <OrPending value={site.email} label="Email resmi" />
+                    <ValueOrPending value={site.email} />
                   )}
                 </dd>
               </div>
               <div className="sm:col-span-2">
-                <dt className="text-label font-semibold uppercase text-emerald-300">Alamat</dt>
+                <dt className="text-label font-semibold uppercase text-emerald-300">
+                  {copy.footer.addressLabel}
+                </dt>
                 <dd className="mt-1 text-emerald-100">
                   {site.addressLines.map((line) => (
                     <span key={line} className="block">
-                      <OrPending value={line} label="Alamat kantor" />
+                      <ValueOrPending value={line} />
                     </span>
                   ))}
                   <span className="mt-1 block text-emerald-300">
-                    <OrPending value={site.serviceHours} label="Jam layanan" />
+                    {copy.footer.hoursLabel}: <ValueOrPending value={site.serviceHours} />
                   </span>
                 </dd>
               </div>
@@ -93,9 +100,7 @@ export function Footer() {
             {/* No social accounts exist yet, so none are linked. Saying so is
                 better than a row of dead icons. */}
             <p className="text-body-sm text-emerald-300">
-              {socialEntries.length > 0
-                ? "Akun resmi:"
-                : "Akun media sosial resmi belum ditautkan ke situs ini."}
+              {socialEntries.length > 0 ? copy.footer.socialOfficial : copy.footer.socialNone}
             </p>
             {socialEntries.length > 0 ? (
               <ul className="flex flex-wrap gap-4">
@@ -111,25 +116,29 @@ export function Footer() {
           </div>
 
           <div className="grid gap-8 sm:grid-cols-2">
-            <nav aria-label="Navigasi footer">
-              <h2 className="text-label font-semibold uppercase text-emerald-300">Jelajahi</h2>
+            <nav aria-label={copy.footer.footerNav}>
+              <h2 className="text-label font-semibold uppercase text-emerald-300">
+                {copy.footer.explore}
+              </h2>
               <ul className="mt-3 flex flex-col gap-2">
                 {navigationLinks.map((item) => (
                   <li key={item.to}>
                     <Link to={item.to} className={inlineLink}>
-                      {item.label}
+                      {copy.footer[item.label]}
                     </Link>
                   </li>
                 ))}
               </ul>
             </nav>
-            <nav aria-label="Informasi legal">
-              <h2 className="text-label font-semibold uppercase text-emerald-300">Legal</h2>
+            <nav aria-label={copy.footer.legalNav}>
+              <h2 className="text-label font-semibold uppercase text-emerald-300">
+                {copy.footer.legal}
+              </h2>
               <ul className="mt-3 flex flex-col gap-2">
                 {legalLinks.map((item) => (
                   <li key={item.to}>
                     <Link to={item.to} className={inlineLink}>
-                      {item.label}
+                      {copy.footer[item.label]}
                     </Link>
                   </li>
                 ))}
@@ -140,19 +149,21 @@ export function Footer() {
 
         <div className="mt-12 border-t border-emerald-700 pt-6">
           <p className="text-body-sm text-emerald-300">
-            <OrPending value={site.legalEntity.businessName} label="Nama badan usaha" />
+            {copy.footer.businessNameLabel}: <ValueOrPending value={site.legalEntity.businessName} />
             {isPlaceholder(site.legalEntity.nib) ? (
-              <span> · NIB belum diisi</span>
+              <span> · {copy.footer.nibMissing}</span>
             ) : (
-              <span> · NIB {site.legalEntity.nib}</span>
+              <span>
+                {" "}
+                · {copy.footer.nibPrefix} {site.legalEntity.nib}
+              </span>
             )}
           </p>
           <p className="mt-2 text-body-sm text-emerald-300">
-            Data legalitas lengkap ada di halaman{" "}
+            {copy.footer.legalNote}{" "}
             <Link to="/legalitas" className={inlineLink}>
-              legalitas
+              {copy.footer.licensing}
             </Link>
-            .
           </p>
         </div>
       </div>

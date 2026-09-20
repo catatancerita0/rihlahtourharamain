@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
+import { LanguageProvider } from "./i18n/LanguageProvider";
 import "./index.css";
 
 const container = document.getElementById("root");
@@ -15,8 +16,10 @@ if (!container) {
 // second set of paths. The router strips a trailing slash on its own.
 createRoot(container).render(
   <StrictMode>
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <App />
-    </BrowserRouter>
+    <LanguageProvider>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <App />
+      </BrowserRouter>
+    </LanguageProvider>
   </StrictMode>,
 );

@@ -17,6 +17,8 @@ import {
   type FormValues,
 } from "../src/components/ConsultationForm";
 import { isPlaceholder, whatsappHref } from "../src/config/site";
+import { LanguageProvider } from "../src/i18n/LanguageProvider";
+import type { Lang } from "../src/i18n/types";
 import { articles } from "../src/content/articles";
 import { faqs } from "../src/content/faq";
 import { packages } from "../src/content/packages";
@@ -128,11 +130,25 @@ function report(ok: boolean, message: string) {
   console.log(`${ok ? "PASS" : "FAIL"}  ${message}`);
 }
 
-function render(path: string): string {
+/**
+ * The provider takes its starting language from localStorage, which Node does
+ * not have. A stub exposing just that one method lets the same tree render in
+ * English, so the switch is checked end to end instead of only at type level.
+ */
+function stubStoredLanguage(lang: Lang) {
+  (globalThis as unknown as { window: unknown }).window = {
+    localStorage: { getItem: () => lang, setItem: () => undefined },
+  };
+}
+
+function render(path: string, lang: Lang = "id"): string {
+  stubStoredLanguage(lang);
   return renderToString(
-    <StaticRouter location={path}>
-      <App />
-    </StaticRouter>,
+    <LanguageProvider>
+      <StaticRouter location={path}>
+        <App />
+      </StaticRouter>
+    </LanguageProvider>,
   );
 }
 
@@ -270,6 +286,63 @@ report(isPlaceholder("[WHATSAPP_NUMBER]"), "a bracketed value counts as a placeh
 report(!isPlaceholder("628123456789"), "a real value does not count as a placeholder");
 report(isPlaceholder(null) && isPlaceholder(""), "empty values count as placeholders");
 report(whatsappHref() === null, "no WhatsApp link is built while the number is unset");
+
+console.log("");
+console.log("Language switch");
+
+/**
+ * Indonesian strings that belong to the interface only. Each entry has to be
+ * gone from the English render of every route, so this list can only hold
+ * phrases that no untranslated page body repeats. It grows as more of the site
+ * is translated: "Panduan Jamaah" and "Kebijakan Privasi" join it once the
+ * guide and legal pages carry English copy of their own.
+ */
+const indonesianOnlyChrome = [
+  "Beranda",
+  "Jelajahi",
+  "Lewati ke konten utama",
+  "Navigasi utama",
+  "Tampilkan dalam",
+  "Akun media sosial resmi belum ditautkan",
+];
+
+const englishFailures: string[] = [];
+for (const path of [...staticPaths, ...dynamicPaths]) {
+  try {
+    const html = render(path, "en");
+    if (html.length < 200) englishFailures.push(`${path} rendered almost nothing`);
+  } catch (error) {
+    englishFailures.push(`${path} threw: ${(error as Error).message}`);
+  }
+}
+report(englishFailures.length === 0, "every route also renders in English");
+for (const failure of englishFailures) {
+  console.log(`      ${failure}`);
+}
+
+const leakedIndonesian = [...staticPaths, ...dynamicPaths].flatMap((path) => {
+  const html = render(path, "en");
+  return indonesianOnlyChrome
+    .filter((needle) => html.includes(needle))
+    .map((needle) => `${path} still shows ${needle}`);
+});
+report(
+  leakedIndonesian.length === 0,
+  "no Indonesian interface text survives in the English render",
+);
+for (const leak of leakedIndonesian) {
+  console.log(`      ${leak}`);
+}
+
+const englishHome = render("/", "en");
+report(
+  englishHome.includes("Umrah Packages") && englishHome.includes("Skip to main content"),
+  "the switch replaces navigation and skip link copy",
+);
+report(
+  render("/").includes("Beranda") && !englishHome.includes("Beranda"),
+  "the Indonesian render is unchanged by the new provider",
+);
 
 const blankForm: FormValues = {
   nama: "",
