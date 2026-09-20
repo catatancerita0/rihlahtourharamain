@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-# Replace the domain below with the live address before publishing.
-Sitemap: https://rihlahtourharamain.example/sitemap.xml
+Sitemap: https://catatancerita0.github.io/rihlahtourharamain/sitemap.xml

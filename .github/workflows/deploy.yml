@@ -1,0 +1,56 @@
+name: Deploy to GitHub Pages
+
+# Pages has no build step of its own. Pointing it at the repository root sends
+# the raw index.html to the browser, and that file asks for /src/main.tsx, a
+# TypeScript source no browser can run, so the page renders empty. This
+# workflow compiles the app first and publishes the output instead.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      # A project site is served from /<repository>/ rather than the domain
+      # root, so assets must be requested from that path. The router reads the
+      # same value at runtime through import.meta.env.BASE_URL.
+      - run: bunx vite build --base=/${{ github.event.repository.name }}/
+
+      # Pages answers an unknown path with 404.html. Serving the app shell from
+      # there keeps a direct visit or a reload on a deep route working, which
+      # a single page app would otherwise lose.
+      - run: cp dist/index.html dist/404.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

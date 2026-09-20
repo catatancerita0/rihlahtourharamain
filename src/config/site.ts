@@ -10,11 +10,11 @@
  *   4. legalEntity: business name, NIB, PPIU and PIHK numbers, bank account.
  *      Take these from official documents, not from marketing material.
  *   5. social entries, once the accounts exist, so the footer can link them.
- *   6. siteUrl, so canonical and Open Graph URLs point at the live domain.
  */
-// Reserved documentation domain, not a live address. Replace it with the real
-// domain before publishing so canonical and Open Graph URLs point somewhere.
-export const siteUrl = "https://rihlahtourharamain.example";
+// The address that answers today: a GitHub Pages project site. Move this to the
+// brand domain when there is one, and change the base flag in
+// .github/workflows/deploy.yml in the same commit, or the two disagree.
+export const siteUrl = "https://catatancerita0.github.io/rihlahtourharamain";
 
 export function canonicalFor(pathname: string): string {
   const clean = pathname === "/" ? "" : pathname.replace(/\/$/, "");
