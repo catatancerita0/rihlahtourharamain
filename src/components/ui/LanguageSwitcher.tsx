@@ -17,7 +17,6 @@ export function LanguageSwitcher({ className = "", onLight = false }: LanguageSw
   const { lang, setLang } = useLanguage();
   const copy = useCopy(chrome);
 
-  const labelClass = onLight ? "text-charcoal-muted" : "text-emerald-300";
   const borderClass = onLight ? "border-emerald-400" : "border-emerald-300";
   const activeClass = onLight ? "bg-emerald-800 text-shell" : "bg-shell text-emerald-900";
   const idleClass = onLight
@@ -26,11 +25,10 @@ export function LanguageSwitcher({ className = "", onLight = false }: LanguageSw
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      {/* The label is dropped on the narrowest screens so the switch always fits
-          beside the menu button instead of being pushed out of the bar. */}
-      <span className={`text-label font-semibold uppercase ${labelClass} hidden sm:inline`}>
-        {copy.language.label}
-      </span>
+      {/* The word label stays for screen readers only. Spelling it out in the
+          bar costs about 70px, which is the difference between the trimmed
+          navigation fitting on a laptop and the header overflowing. */}
+      <span className="sr-only">{copy.language.label}</span>
       <div
         role="group"
         aria-label={copy.language.groupLabel}

@@ -42,10 +42,10 @@ export function AboutPage() {
         intro="Penyelenggara perjalanan Umrah dan Haji untuk jamaah Indonesia. Kami menyiapkan program, memeriksa dokumen, dan mendampingi jamaah dari konsultasi sampai kembali."
       >
         <div className="flex flex-wrap gap-3">
-          <ButtonLink to="/paket-umrah" variant="primary" size="lg">
+          <ButtonLink to="/paket-umrah" variant="primary" size="lg" onDark>
             Lihat Paket Umrah
           </ButtonLink>
-          <ButtonLink to="/legalitas" variant="outline" size="lg">
+          <ButtonLink to="/legalitas" variant="outline" size="lg" onDark>
             Lihat data legalitas
           </ButtonLink>
         </div>

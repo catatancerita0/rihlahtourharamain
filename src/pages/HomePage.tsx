@@ -48,10 +48,10 @@ export function HomePage() {
               <h1 className="text-display-xl">Menuju Baitullah, Bersama Rihlah.</h1>
               <p className="max-w-prose text-body-lg text-emerald-100">{operatingNote}</p>
               <div className="flex flex-wrap gap-3">
-                <ButtonLink to="/paket-umrah" variant="primary" size="lg">
+                <ButtonLink to="/paket-umrah" variant="primary" size="lg" onDark>
                   Lihat Paket Umrah
                 </ButtonLink>
-                <ButtonLink to="/konsultasi" variant="outline" size="lg">
+                <ButtonLink to="/konsultasi" variant="outline" size="lg" onDark>
                   Konsultasikan Rencana Umrah
                 </ButtonLink>
               </div>
@@ -340,7 +340,13 @@ export function HomePage() {
                     </li>
                   ))}
                 </ul>
-                <ButtonLink to="/paket-haji" variant="primary" size="lg" className="self-start">
+                <ButtonLink
+                  to="/paket-haji"
+                  variant="primary"
+                  size="lg"
+                  onDark
+                  className="self-start"
+                >
                   Buka halaman Program Haji
                 </ButtonLink>
               </div>

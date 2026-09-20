@@ -85,7 +85,7 @@ export function PackageDetailPage({ category }: { category: PackageCategory }) {
                 <ButtonLink to={consult} variant="accent" size="lg">
                   Konsultasikan Paket Ini
                 </ButtonLink>
-                <ButtonLink to="/jadwal" variant="outline" size="lg">
+                <ButtonLink to="/jadwal" variant="outline" size="lg" onDark>
                   Lihat Jadwal Keberangkatan
                 </ButtonLink>
               </div>

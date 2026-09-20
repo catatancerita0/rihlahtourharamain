@@ -6,14 +6,19 @@ import { chrome, type ChromeCopy } from "../../i18n/strings";
 import { ButtonLink } from "../ui/Button";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 
-const navItems: Array<{ label: keyof ChromeCopy["nav"]; to: string }> = [
-  { label: "home", to: "/" },
-  { label: "umrah", to: "/paket-umrah" },
-  { label: "haji", to: "/paket-haji" },
-  { label: "schedule", to: "/jadwal" },
-  { label: "about", to: "/tentang-kami" },
-  { label: "guide", to: "/panduan" },
-  { label: "faq", to: "/faq" },
+/**
+ * The full list needs the width of a wide desktop, so a laptop gets the four
+ * entries that drive a decision and the menu button keeps the rest one tap
+ * away. Home is left out of the trimmed set because the logo already links to it.
+ */
+const navItems: Array<{ label: keyof ChromeCopy["nav"]; to: string; onLaptop: boolean }> = [
+  { label: "home", to: "/", onLaptop: false },
+  { label: "umrah", to: "/paket-umrah", onLaptop: true },
+  { label: "haji", to: "/paket-haji", onLaptop: true },
+  { label: "schedule", to: "/jadwal", onLaptop: true },
+  { label: "about", to: "/tentang-kami", onLaptop: false },
+  { label: "guide", to: "/panduan", onLaptop: false },
+  { label: "faq", to: "/faq", onLaptop: true },
 ];
 
 const linkBase =
@@ -69,10 +74,10 @@ export function Header() {
             </span>
           </Link>
 
-          <nav aria-label={copy.nav.main} className="hidden xl:block">
+          <nav aria-label={copy.nav.main} className="hidden lg:block">
             <ul className="flex items-center gap-1">
               {navItems.map((item) => (
-                <li key={item.to}>
+                <li key={item.to} className={item.onLaptop ? undefined : "hidden xl:block"}>
                   <NavLink
                     to={item.to}
                     end={item.to === "/"}

@@ -26,7 +26,7 @@ export function HajiPage() {
           <ButtonLink to="/konsultasi" variant="accent" size="lg">
             Konsultasikan Rencana Haji
           </ButtonLink>
-          <ButtonLink to="/legalitas" variant="outline" size="lg">
+          <ButtonLink to="/legalitas" variant="outline" size="lg" onDark>
             Lihat halaman legalitas
           </ButtonLink>
         </div>
@@ -104,7 +104,7 @@ export function HajiPage() {
                 <ButtonLink to="/konsultasi" variant="accent">
                   Konsultasikan Rencana Haji
                 </ButtonLink>
-                <ButtonLink to="/jadwal" variant="outline">
+                <ButtonLink to="/jadwal" variant="outline" onDark>
                   Lihat jadwal yang sudah ada
                 </ButtonLink>
               </>

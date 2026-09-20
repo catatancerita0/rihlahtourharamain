@@ -233,6 +233,49 @@ for (const risk of mobileRisks) {
 }
 
 console.log("");
+console.log("Controls that would vanish into a dark panel");
+
+/**
+ * Buttons keep their own colours, so a light-surface variant placed on an
+ * emerald panel either loses its shape or disappears entirely: an emerald
+ * outline on an emerald background is invisible, text included. Only always-on
+ * classes count, since hover and focus utilities do nothing when nothing is
+ * hovered, and a control with a light fill of its own is safe anywhere.
+ */
+const darkPanel = /bg-emerald-(800|900)/;
+const clashesWithDark = /bg-emerald-800|bg-emerald-900|text-emerald-800|border-emerald-800/;
+
+const invisibleOnDark: string[] = [];
+for (const path of [...staticPaths, ...dynamicPaths]) {
+  const chunks = render(path).split(/(?=<(?:section|footer|header)\b)/);
+
+  for (const chunk of chunks) {
+    const panel = /<(?:section|footer|header)[^>]*class="([^"]*)"/.exec(chunk);
+    if (!panel || !darkPanel.test(panel[1])) continue;
+
+    for (const match of chunk.matchAll(/<(a|button)\b[^>]*class="([^"]*)"[^>]*>([\s\S]*?)<\/\1>/g)) {
+      const plain = (match[2] ?? "")
+        .split(/\s+/)
+        .filter((token) => token && !token.includes(":"))
+        .join(" ");
+      if (/bg-shell|bg-cream|bg-emerald-50|bg-gold/.test(plain)) continue;
+      if (!clashesWithDark.test(plain)) continue;
+
+      const label = (match[3] ?? "")
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 40);
+      invisibleOnDark.push(`${path}: "${label}" keeps light-surface colours on a dark panel`);
+    }
+  }
+}
+report(invisibleOnDark.length === 0, "no control borrows light-surface colours on a dark panel");
+for (const item of invisibleOnDark) {
+  console.log(`      ${item}`);
+}
+
+console.log("");
 console.log("Interactive elements that carry no visible text");
 
 /**
