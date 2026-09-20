@@ -6,6 +6,7 @@ import { Seo } from "../components/Seo";
 import { ButtonLink } from "../components/ui/Button";
 import { DefinitionList, type DefinitionRow } from "../components/ui/DefinitionList";
 import { EmptyState } from "../components/ui/EmptyState";
+import { Media } from "../components/ui/Media";
 import { PendingPanel } from "../components/ui/PendingPanel";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { Tag } from "../components/ui/Tag";
@@ -91,21 +92,45 @@ export function PackageDetailPage({ category }: { category: PackageCategory }) {
               </div>
             </div>
 
-            <div className="rounded-lg border border-emerald-700 bg-emerald-900/40 p-5">
-              <p className="text-label font-semibold uppercase text-emerald-300">
-                Ringkasan data
-              </p>
-              <p className="mt-2 text-body text-emerald-100">
-                {publishedCount} dari {completeness.length} data komersial sudah dipublikasikan.
-                Sisanya belum ditetapkan oleh tim, dan tidak kami isi dengan perkiraan.
-              </p>
-              <div className="mt-4">
-                <DefinitionList onDark rows={completeness} />
+            <div className="flex flex-col gap-5">
+              {item.thumbnail ? (
+                <Media src={item.thumbnail} alt={item.name} ratio="4/3" priority />
+              ) : null}
+
+              <div className="rounded-lg border border-emerald-700 bg-emerald-900/40 p-5">
+                <p className="text-label font-semibold uppercase text-emerald-300">
+                  Ringkasan data
+                </p>
+                <p className="mt-2 text-body text-emerald-100">
+                  {publishedCount} dari {completeness.length} data komersial sudah dipublikasikan.
+                  Sisanya belum ditetapkan oleh tim, dan tidak kami isi dengan perkiraan.
+                </p>
+                <div className="mt-4">
+                  <DefinitionList onDark rows={completeness} />
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Programme photos, placed where people look for proof that the trip is
+          real. Nothing appears until documentation exists, so no stock image
+          ever stands in for this departure. */}
+      {item.gallery.length > 0 ? (
+        <section className="section-tight bg-cream">
+          <div className="shell-container">
+            <h2 className="text-display-sm text-emerald-900">Galeri program ini</h2>
+            <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {item.gallery.map((photo) => (
+                <li key={photo.file}>
+                  <Media src={photo.file} alt={photo.alt} ratio="4/3" />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      ) : null}
 
       <section className="section bg-shell">
         <div className="shell-container">

@@ -1,3 +1,4 @@
+import type { Photo } from "../content/types";
 import type { Localized } from "../i18n/types";
 
 /**
@@ -12,11 +13,34 @@ import type { Localized } from "../i18n/types";
  *   4. legalEntity: business name, NIB, PPIU and PIHK numbers, bank account.
  *      Take these from official documents, not from marketing material.
  *   5. social entries, once the accounts exist, so the footer can link them.
+ *   6. media and legalEntity.documents, once real photos and licence scans
+ *      exist. See PANDUAN-ASET.md for where the files go.
  */
 // The address that answers today: a GitHub Pages project site. Move this to the
 // brand domain when there is one, and change the base flag in
 // .github/workflows/deploy.yml in the same commit, or the two disagree.
 export const siteUrl = "https://catatancerita0.github.io/rihlahtourharamain";
+
+/** A licence scan or other official file shown on the legality page. */
+export interface LegalDocument {
+  id: string;
+  label: Localized<string>;
+  /** Path inside public/, or a full URL. null keeps the entry hidden. */
+  file: string | null;
+}
+
+const legalDocuments: LegalDocument[] = [
+  {
+    id: "doc-ppiu",
+    label: { id: "Salinan izin PPIU", en: "PPIU licence scan" },
+    file: null,
+  },
+  {
+    id: "doc-nib",
+    label: { id: "Salinan NIB", en: "Business ID scan" },
+    file: null,
+  },
+];
 
 export function canonicalFor(pathname: string): string {
   const clean = pathname === "/" ? "" : pathname.replace(/\/$/, "");
@@ -53,6 +77,23 @@ export const site = {
     ppiu: "[NOMOR IZIN PPIU]",
     pihk: "[NOMOR IZIN PIHK]",
     bankAccount: "[REKENING RESMI PERUSAHAAN]",
+
+    // Scans of the licences, so a jamaah can check the numbers on the legality
+    // page against the document itself. A listed document with no file stays
+    // hidden rather than becoming a link to nothing.
+    documents: legalDocuments,
+  },
+
+  /**
+   * Photographs. Each value is either a path inside `public/` (write it as
+   * "/images/namafile.jpg") or a full URL. Leave null until a real photo
+   * exists: the pages render a labelled gap on purpose rather than stock.
+   */
+  media: {
+    /**
+     * The single hero photo, portrait because the column it fills is 4 by 5.
+     */
+    hero: null as Photo | null,
   },
 
   // Left null on purpose. A social link is only rendered when a real account

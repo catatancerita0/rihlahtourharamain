@@ -5,6 +5,7 @@ import { categoryLabels, programLabels } from "../lib/packages";
 import { ButtonLink } from "./ui/Button";
 import { DefinitionList, type DefinitionRow } from "./ui/DefinitionList";
 import { EmptyState } from "./ui/EmptyState";
+import { Media } from "./ui/Media";
 import { StatusBadge } from "./ui/StatusBadge";
 import { Tag } from "./ui/Tag";
 
@@ -33,6 +34,10 @@ export function PackageCard({ item }: { item: TravelPackage }) {
 
   return (
     <article className="flex flex-col gap-5 rounded-lg border border-emerald-100 bg-shell p-5 sm:p-6">
+      {/* Only packages with a real photo get one. A card without one keeps the
+          denser layout instead of showing an empty frame. */}
+      {item.thumbnail ? <Media src={item.thumbnail} alt={item.name} ratio="3/2" /> : null}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tag>
           {categoryLabels[item.category]} · {programLabels[item.type]}

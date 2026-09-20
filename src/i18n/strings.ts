@@ -5,6 +5,28 @@ import type { Localized } from "./types";
  * drift between the header, the footer and a page body. Copy that belongs to a
  * single screen stays next to that screen instead.
  */
+/**
+ * States for a photo that is missing on purpose. Exported separately as well,
+ * because the media primitive is used by pages that need only this text.
+ */
+const idMedia = {
+  slotLabel: "Slot foto",
+  slotNote: "Foto asli untuk bagian ini belum diunggah.",
+  fileMissing: "Berkas foto tidak ditemukan",
+  fileMissingNote:
+    "Berkas yang dirujuk belum ada di folder publik, jadi bagian ini dibiarkan kosong alih-alih menampilkan gambar rusak.",
+};
+
+const enMedia: typeof idMedia = {
+  slotLabel: "Photo slot",
+  slotNote: "No original photo has been uploaded for this part yet.",
+  fileMissing: "Photo file not found",
+  fileMissingNote:
+    "The referenced file is not in the public folder yet, so this is left empty instead of showing a broken image.",
+};
+
+export const mediaCopy: Localized<typeof idMedia> = { id: idMedia, en: enMedia };
+
 const idCopy = {
   skipToContent: "Lewati ke konten utama",
 
@@ -50,6 +72,8 @@ const idCopy = {
     errorBody: "Coba lagi sebentar lagi. Kalau masih gagal, hubungi tim lewat halaman kontak.",
     retry: "Coba lagi",
   },
+
+  media: idMedia,
 
   availability: {
     available: {
@@ -145,6 +169,8 @@ export const chrome: Localized<typeof idCopy> = {
       errorBody: "Try again in a moment. If it keeps failing, reach the team on the contact page.",
       retry: "Try again",
     },
+
+    media: enMedia,
 
     availability: {
       available: {

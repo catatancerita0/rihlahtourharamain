@@ -15,6 +15,8 @@ export interface HotelInfo {
   distance: string | null;
   roomType: string | null;
   facilities: string[];
+  /** Photo of the actual room. Never a stock lobby shot of a different hotel. */
+  photo: string | null;
 }
 
 export interface ItineraryDay {
@@ -49,13 +51,26 @@ export interface TravelPackage {
   price: number | null;
   priceNote: string | null;
   availability: Availability;
+  /** Cover photo for listings. Its description comes from the package name. */
   thumbnail: string | null;
-  gallery: string[];
+  /** Photos of this programme. Each one carries its own description. */
+  gallery: Photo[];
   itinerary: ItineraryDay[];
   included: string[];
   excluded: string[];
   documents: string[];
   terms: string[];
+}
+
+/**
+ * A photograph together with the sentence describing what it shows. Keeping the
+ * two in one value means no image can reach a page without alternative text.
+ */
+export interface Photo {
+  /** Path inside public/, or a full URL. */
+  file: string;
+  /** What someone who cannot see the photo needs to know. */
+  alt: string;
 }
 
 export interface Article {

@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "../components/layout/PageHeader";
 import { ButtonLink } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
+import { Media } from "../components/ui/Media";
 import { estimateReadingMinutes, getArticleBySlug, articles } from "../content/articles";
 import type { ArticleBlock } from "../content/types";
 import { formatDeparture } from "../lib/format";
@@ -73,6 +74,16 @@ export function GuideArticlePage() {
 
       <section className="section bg-shell">
         <div className="shell-container">
+          {article.thumbnail ? (
+            <Media
+              src={article.thumbnail}
+              alt={article.title}
+              ratio="16/9"
+              className="mb-10"
+              priority
+            />
+          ) : null}
+
           <div className="grid gap-12 lg:grid-cols-[1.5fr_1fr] lg:gap-16">
             <article className="max-w-prose">
               <Link

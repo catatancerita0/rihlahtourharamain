@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { estimateReadingMinutes } from "../content/articles";
 import type { Article } from "../content/types";
 import { formatDeparture } from "../lib/format";
+import { Media } from "./ui/Media";
 import { Tag } from "./ui/Tag";
 
 export function ArticleCard({ article, featured = false }: { article: Article; featured?: boolean }) {
@@ -14,6 +15,15 @@ export function ArticleCard({ article, featured = false }: { article: Article; f
         featured ? "lg:p-8" : ""
       }`}
     >
+      {article.thumbnail ? (
+        <Media
+          src={article.thumbnail}
+          alt={article.title}
+          ratio="3/2"
+          className={featured ? "mb-3" : "mb-2"}
+        />
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-3">
         <Tag>{article.category}</Tag>
         <span className="text-body-sm text-charcoal-muted">

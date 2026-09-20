@@ -113,13 +113,16 @@ export const teamMembers: TeamMember[] = [];
 export const testimonials: Testimonial[] = [];
 
 /**
- * Photo slots. Nothing is rendered as an image until real documentation
- * exists, so the gallery page shows what belongs here and why it is empty.
+ * Photo slots. A slot with a photo renders as that photo; a slot without one
+ * shows what belongs there and why it is empty, so the page is never padded
+ * with stock imagery that would misrepresent the trips.
  */
 export interface GallerySlot {
   id: string;
   label: string;
   description: string;
+  /** Path inside public/, or a full URL. See PANDUAN-ASET.md. */
+  photo: string | null;
 }
 
 export const gallerySlots: GallerySlot[] = [
@@ -127,31 +130,37 @@ export const gallerySlots: GallerySlot[] = [
     id: "gal-manasik",
     label: "Manasik",
     description: "Kegiatan pembekalan sebelum keberangkatan bersama pembimbing.",
+    photo: null,
   },
   {
     id: "gal-keberangkatan",
     label: "Keberangkatan",
     description: "Pertemuan di titik kumpul dan proses keberangkatan rombongan.",
+    photo: null,
   },
   {
     id: "gal-haram",
     label: "Masjidil Haram dan sekitarnya",
     description: "Dokumentasi area ibadah dan jarak tempuh dari penginapan.",
+    photo: null,
   },
   {
     id: "gal-nabawi",
     label: "Masjid Nabawi",
     description: "Dokumentasi area Madinah yang dipakai dalam program.",
+    photo: null,
   },
   {
     id: "gal-hotel",
     label: "Penginapan",
     description: "Kamar, ruang makan, dan fasilitas yang benar-benar dipakai jamaah.",
+    photo: null,
   },
   {
     id: "gal-transportasi",
     label: "Transportasi",
     description: "Kendaraan rombongan dan perpindahan antar kota.",
+    photo: null,
   },
 ];
 

@@ -1,5 +1,6 @@
 import type { HotelInfo } from "../content/types";
 import { DefinitionList } from "./ui/DefinitionList";
+import { Media } from "./ui/Media";
 import { PendingPanel } from "./ui/PendingPanel";
 
 interface HotelPanelProps {
@@ -27,6 +28,16 @@ export function HotelPanel({ hotel, city }: HotelPanelProps) {
 
   return (
     <div className="rounded-lg border border-emerald-100 bg-shell p-5 sm:p-6">
+      {/* A photo of this hotel only. The panel already states the distance to
+          the worship area, so the picture has to match those numbers. */}
+      {hotel.photo ? (
+        <Media
+          src={hotel.photo}
+          alt={`${hotel.name}, ${hotel.city}`}
+          ratio="3/2"
+          className="mb-5"
+        />
+      ) : null}
       <h3 className="text-display-sm text-emerald-900">{hotel.name}</h3>
       <p className="mt-1 text-body-sm text-charcoal-soft">{hotel.city}</p>
       <DefinitionList

@@ -1,6 +1,7 @@
 import { PageHeader } from "../components/layout/PageHeader";
 import { ButtonLink } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
+import { Media } from "../components/ui/Media";
 import { SectionHeading } from "../components/ui/SectionHeading";
 import { teamMembers } from "../content/site-content";
 
@@ -47,6 +48,15 @@ export function PembimbingPage() {
             <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {teamMembers.map((member) => (
                 <li key={member.id} className="rounded-lg border border-emerald-100 bg-shell p-5">
+                  {/* A real portrait of the person named below, never a stock face. */}
+                  {member.photo ? (
+                    <Media
+                      src={member.photo}
+                      alt={member.name}
+                      ratio="1/1"
+                      className="mb-5"
+                    />
+                  ) : null}
                   <h2 className="text-display-sm text-emerald-900">{member.name}</h2>
                   <p className="mt-1 text-body-sm font-semibold text-charcoal-muted">{member.role}</p>
                   {member.bio ? (

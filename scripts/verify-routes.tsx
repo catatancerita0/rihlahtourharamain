@@ -8,6 +8,8 @@
  *
  * Run with: bun run verify
  */
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { renderToString } from "react-dom/server";
 import { StaticRouter } from "react-router-dom";
 import App from "../src/App";
@@ -22,7 +24,14 @@ import type { Lang } from "../src/i18n/types";
 import { articles } from "../src/content/articles";
 import { faqs } from "../src/content/faq";
 import { packages } from "../src/content/packages";
+import { gallerySlots } from "../src/content/site-content";
 import { formatRupiah, sortByAvailability, splitDeparture } from "../src/lib/format";
+import {
+  assetUrl,
+  isLocalAssetPath,
+  mediaBase,
+  publicPathOf,
+} from "../src/lib/media";
 import {
   deriveBudgetBands,
   deriveMonths,
@@ -88,7 +97,10 @@ const checks: Check[] = [
   { path: "/pembimbing", mustContain: ["Data pembimbing belum tersedia."] },
   { path: "/panduan", mustContain: [articles[0].title, "Kategori"] },
   { path: `/panduan/${articles[0].slug}`, mustContain: [articles[0].title, "Kembali ke semua panduan"] },
-  { path: "/galeri", mustContain: ["Slot foto", "Masjidil Haram dan sekitarnya"] },
+  {
+    path: "/galeri",
+    mustContain: ["Masjidil Haram dan sekitarnya", "Galeri ini sengaja kosong"],
+  },
   { path: "/faq", mustContain: [faqs[0].question, faqs[9].question] },
   {
     path: "/legalitas",
@@ -508,6 +520,112 @@ report(
   render("/konsultasi").includes("Nomor WhatsApp resmi belum diatur"),
   "the missing-channel notice returns while the number is a placeholder",
 );
+
+console.log("");
+console.log("Media references");
+
+/**
+ * Every media path in the content layer either resolves to a file that really
+ * is in public/, or it is not published at all. A typo would otherwise surface
+ * as a broken image on the live site, where nobody is watching the build.
+ */
+const referencedMedia: Array<{ source: string; path: string | null }> = [
+  ...(site.media.hero ? [{ source: "hero", path: site.media.hero.file }] : []),
+  ...site.legalEntity.documents.map((doc) => ({ source: `dokumen ${doc.id}`, path: doc.file })),
+  ...gallerySlots.map((slot) => ({ source: `galeri ${slot.id}`, path: slot.photo })),
+  ...packages.flatMap((item) => [
+    { source: `${item.slug} thumbnail`, path: item.thumbnail },
+    ...item.gallery.map((photo) => ({ source: `${item.slug} gallery`, path: photo.file })),
+    ...(item.makkahHotel
+      ? [{ source: `${item.slug} hotel Makkah`, path: item.makkahHotel.photo }]
+      : []),
+  ]),
+  ...articles.map((item) => ({ source: `${item.slug} thumbnail`, path: item.thumbnail })),
+];
+
+const localMedia = referencedMedia.filter(
+  (entry): entry is { source: string; path: string } =>
+    entry.path !== null && isLocalAssetPath(entry.path),
+);
+const missingFiles = localMedia.filter((entry) => {
+  const relative = publicPathOf(entry.path);
+  return relative === null || !existsSync(join("public", relative));
+});
+report(
+  missingFiles.length === 0,
+  `local media references resolve to a file in public/: ${localMedia.length}`,
+);
+for (const entry of missingFiles) {
+  console.log(`      missing file: ${entry.source} -> ${entry.path}`);
+}
+
+// A reference that climbs out of the publish folder is refused by assetUrl, so
+// it would render as an empty slot instead of being served. Catching it here
+// keeps a broken path from looking like a photo that was never supplied.
+const unresolvable = referencedMedia.filter(
+  (entry) => entry.path !== null && entry.path.trim() !== "" && assetUrl(entry.path) === null,
+);
+report(unresolvable.length === 0, "no media reference points outside the publish folder");
+for (const entry of unresolvable) {
+  console.log(`      refused path: ${entry.source} -> ${entry.path}`);
+}
+
+// GitHub Pages serves this project from /<repository>/, so a stored path used
+// raw would request the wrong address even though the file exists.
+const rewritten = assetUrl("/images/contoh.jpg");
+report(
+  rewritten === `${mediaBase()}images/contoh.jpg`,
+  "a stored asset path is rewritten to the deployment base",
+);
+report(
+  assetUrl("https://contoh.invalid/foto.jpg") === "https://contoh.invalid/foto.jpg" &&
+    assetUrl("[BELUM ADA]") === null &&
+    assetUrl(null) === null,
+  "external URLs pass through while placeholders and empty values resolve to nothing",
+);
+
+/**
+ * No photo is configured yet, so the pipeline is exercised by putting one in
+ * place for two renders and taking it back out. Without this the img checks
+ * below would pass over empty markup and prove nothing.
+ */
+const storedHero = site.media.hero;
+const storedSlotPhoto = gallerySlots[0].photo;
+site.media.hero = { file: "/images/contoh-hero.jpg", alt: "Contoh foto hero" };
+gallerySlots[0].photo = "/images/contoh-galeri.jpg";
+const withPhotos = render("/") + render("/galeri");
+site.media.hero = storedHero;
+gallerySlots[0].photo = storedSlotPhoto;
+
+report(
+  withPhotos.includes(`src="${mediaBase()}images/contoh-hero.jpg"`),
+  "a configured hero photo is requested from the deployment base",
+);
+report(
+  withPhotos.includes(`src="${mediaBase()}images/contoh-galeri.jpg"`),
+  "a configured gallery photo is requested from the deployment base",
+);
+report(
+  withPhotos.includes('alt="Contoh foto hero"'),
+  "the hero photo keeps the description stored beside it",
+);
+report(
+  /<img[^>]*loading="eager"[^>]*>/.test(withPhotos),
+  "the hero photo loads eagerly instead of waiting for the viewport",
+);
+report(
+  withPhotos.includes('loading="lazy"') && withPhotos.includes('decoding="async"'),
+  "photos below the fold load lazily and decode off the main thread",
+);
+
+const tagsWithoutAlt: string[] = [];
+const tagsWithoutLoading: string[] = [];
+for (const tag of withPhotos.matchAll(/<img\b[^>]*>/g)) {
+  if (!/\balt="[^"]+"/.test(tag[0])) tagsWithoutAlt.push(tag[0]);
+  if (!/\bloading="(lazy|eager)"/.test(tag[0])) tagsWithoutLoading.push(tag[0]);
+}
+report(tagsWithoutAlt.length === 0, "every rendered image carries alternative text");
+report(tagsWithoutLoading.length === 0, "every rendered image states how it should load");
 
 console.log("");
 console.log(`${failures === 0 ? "ALL CHECKS PASSED" : `${failures} CHECK(S) FAILED`}`);

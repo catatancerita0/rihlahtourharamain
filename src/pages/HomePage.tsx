@@ -9,6 +9,7 @@ import { Seo } from "../components/Seo";
 import { ButtonAnchor, ButtonLink } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
 import { GeometricMotif } from "../components/ui/GeometricMotif";
+import { Media } from "../components/ui/Media";
 import { Reveal } from "../components/ui/Reveal";
 import { SectionHeading } from "../components/ui/SectionHeading";
 import { Tag } from "../components/ui/Tag";
@@ -70,16 +71,15 @@ export function HomePage() {
               </div>
             </div>
 
-            <div className="flex aspect-[4/5] flex-col justify-end rounded-xl border border-dashed border-emerald-300 bg-emerald-900/40 p-6">
-              <p className="text-label font-semibold uppercase text-emerald-300">Slot foto utama</p>
-              <p className="mt-2 font-display text-2xl text-shell">
-                Masjidil Haram, Masjid Nabawi, atau jamaah Indonesia di area ibadah
-              </p>
-              <p className="mt-2 text-body-sm text-emerald-100">
-                Rasio 4 banding 5. Diganti satu foto asli setelah dokumentasi tersedia, dan bukan
-                foto berlisensi stok.
-              </p>
-            </div>
+            <Media
+              src={site.media.hero?.file}
+              alt={site.media.hero?.alt ?? ""}
+              ratio="4/5"
+              priority
+              onDark
+              slotLabel="Slot foto utama"
+              slotNote="Satu foto asli berukuran 4 banding 5. Masjidil Haram, Masjid Nabawi, atau jamaah Indonesia di area ibadah, bukan foto berlisensi stok."
+            />
           </div>
         </div>
         <GeometricMotif className="h-8 w-full text-emerald-700" scale={34} />

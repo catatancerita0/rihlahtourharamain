@@ -1,9 +1,42 @@
 import { site } from "../config/site";
+import { useCopy, useLang } from "../i18n/LanguageProvider";
+import { pick, type Localized } from "../i18n/types";
+import { assetUrl } from "../lib/media";
 import { GeometricMotif } from "./ui/GeometricMotif";
 import { DefinitionList } from "./ui/DefinitionList";
 
+const docCopyId = {
+  heading: "Dokumen pendukung",
+  intro:
+    "Berkas di bawah ini berasal dari dokumen resmi penyelenggara. Cocokkan nomor izin di atas dengan nomor yang tercetak pada berkasnya.",
+  openFile: "Buka berkas",
+  newTab: "Terbuka di tab baru dalam format PDF atau gambar.",
+  none: "Belum ada salinan dokumen resmi yang diunggah ke situs ini. Minta salinannya lewat kanal kontak resmi sebelum melakukan pembayaran.",
+};
+
+const docCopy: Localized<typeof docCopyId> = {
+  id: docCopyId,
+  en: {
+    heading: "Supporting documents",
+    intro:
+      "These files come from the organiser's official documents. Check the licence numbers above against the numbers printed on them.",
+    openFile: "Open file",
+    newTab: "Opens in a new tab as a PDF or image.",
+    none: "No official document scans have been uploaded to this site yet. Ask for copies through the official contact channels before making any payment.",
+  },
+};
+
 export function LegalityPanel() {
   const entity = site.legalEntity;
+  const copy = useCopy(docCopy);
+  const lang = useLang();
+
+  // A listed document with no file stays out of the page rather than becoming
+  // a link that leads nowhere.
+  const documents = entity.documents.flatMap((doc) => {
+    const href = assetUrl(doc.file);
+    return href ? [{ id: doc.id, label: doc.label, href }] : [];
+  });
 
   return (
     <div className="overflow-hidden rounded-xl border border-emerald-100 bg-shell">
@@ -42,6 +75,35 @@ export function LegalityPanel() {
             { label: "Jam layanan", value: site.serviceHours, pending: "Belum diisi" },
           ]}
         />
+      </div>
+
+      {/* Licence scans sit next to the numbers they prove. Checking a licence
+          number against the document itself is the point of this page. */}
+      <div className="border-t border-emerald-100 px-5 py-6 sm:px-7">
+        <h3 className="text-body-lg font-semibold text-emerald-900">{copy.heading}</h3>
+        <p className="mt-2 max-w-prose text-body-sm text-charcoal-soft">{copy.intro}</p>
+        {documents.length > 0 ? (
+          <ul className="mt-4 flex flex-col gap-2">
+            {documents.map((doc) => (
+              <li key={doc.id}>
+                <a
+                  href={doc.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-sm text-body-sm font-semibold text-emerald-800 underline decoration-emerald-400 underline-offset-4 hover:decoration-emerald-800"
+                >
+                  {pick(doc.label, lang)}
+                  <span className="text-charcoal-muted">({copy.openFile})</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 max-w-prose text-body-sm text-charcoal-soft">{copy.none}</p>
+        )}
+        {documents.length > 0 ? (
+          <p className="mt-3 text-body-sm text-charcoal-muted">{copy.newTab}</p>
+        ) : null}
       </div>
 
       <div className="border-t border-emerald-100 bg-emerald-900 px-5 py-6 text-shell on-dark sm:px-7">
