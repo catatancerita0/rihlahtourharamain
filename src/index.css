@@ -29,15 +29,17 @@
 
 @layer base {
   html {
-    /* Prevents a stray wide element from turning the whole page sideways. */
-    overflow-x: hidden;
+    /* clip rather than hidden: hidden turns the root into its own scroll
+       container, which silently disables the sticky header. clip trims a
+       stray wide element without creating that scrollport. */
+    overflow-x: clip;
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
   }
 
   body {
     @apply bg-shell text-charcoal font-sans antialiased;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   h1,
