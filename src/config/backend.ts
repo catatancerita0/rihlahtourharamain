@@ -7,10 +7,11 @@
  * service_role key is a different thing entirely and must never appear in this
  * file or anywhere else in this repository, because it bypasses every policy.
  *
- * They are committed rather than kept in an environment file because the
- * production build runs on GitHub's runners, which cannot see this workspace's
- * environment. A value that lives only in the sandbox would leave the deployed
- * admin pointing at nothing.
+ * They are read at build time from the environment, so the production build on
+ * GitHub's runners needs them as repository variables, not as sandbox values.
+ * The deploy workflow passes them through; see PANDUAN-ADMIN.md for where to
+ * set them. Left unset, the site still builds and serves the compiled content,
+ * and the admin panel says which values are missing.
  *
  * Where to find them: Supabase dashboard, Project Settings, API.
  */

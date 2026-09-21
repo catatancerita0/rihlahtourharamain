@@ -35,6 +35,15 @@ jobs:
       # root, so assets must be requested from that path. The router reads the
       # same value at runtime through import.meta.env.BASE_URL.
       - run: bunx vite build --base=/${{ github.event.repository.name }}/
+        env:
+          # Public values, read at build time and baked into the bundle. That is
+          # how Supabase expects them to be used: what limits access is row level
+          # security in the database, not secrecy. Set them as repository
+          # variables under Settings, Secrets and variables, Actions. Left unset,
+          # the build still works and serves the content compiled into the code,
+          # with the admin panel explaining what to fill in.
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
 
       # Pages answers an unknown path with 404.html. Serving the app shell from
       # there keeps a direct visit or a reload on a deep route working, which
