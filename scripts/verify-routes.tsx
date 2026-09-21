@@ -20,11 +20,12 @@ import {
 } from "../src/components/ConsultationForm";
 import { isPlaceholder, site, whatsappHref } from "../src/config/site";
 import { LanguageProvider } from "../src/i18n/LanguageProvider";
-import type { Lang } from "../src/i18n/types";
+import { both, type Lang, type Localized } from "../src/i18n/types";
 import { articles } from "../src/content/articles";
 import { faqs } from "../src/content/faq";
 import { packages } from "../src/content/packages";
-import { gallerySlots } from "../src/content/site-content";
+import { gallerySlots, journeySteps, reasons } from "../src/content/site-content";
+import type { ArticleBlock } from "../src/content/types";
 import { formatRupiah, sortByAvailability, splitDeparture } from "../src/lib/format";
 import {
   assetUrl,
@@ -95,13 +96,16 @@ const checks: Check[] = [
   },
   { path: "/tentang-kami", mustContain: ["Rihlah Tour Haramain", "Yang tidak bisa kami janjikan"] },
   { path: "/pembimbing", mustContain: ["Data pembimbing belum tersedia."] },
-  { path: "/panduan", mustContain: [articles[0].title, "Kategori"] },
-  { path: `/panduan/${articles[0].slug}`, mustContain: [articles[0].title, "Kembali ke semua panduan"] },
+  { path: "/panduan", mustContain: [articles[0].title.id, "Kategori"] },
+  {
+    path: `/panduan/${articles[0].slug}`,
+    mustContain: [articles[0].title.id, "Kembali ke semua panduan"],
+  },
   {
     path: "/galeri",
     mustContain: ["Masjidil Haram dan sekitarnya", "Galeri ini sengaja kosong"],
   },
-  { path: "/faq", mustContain: [faqs[0].question, faqs[9].question] },
+  { path: "/faq", mustContain: [faqs[0].question.id, faqs[9].question.id] },
   {
     path: "/legalitas",
     mustContain: ["Data resmi penyelenggara", "Belum diisi", "Pemeriksaan identitas"],
@@ -330,46 +334,63 @@ for (const item of namelessControls) {
 console.log("");
 console.log("Filter, format and form logic");
 
-const umrahOnly = filterPackages(packages, { ...emptyFilter, category: "umrah" }, []);
+const umrahOnly = filterPackages(packages, { ...emptyFilter, category: "umrah" }, [], "id");
 report(umrahOnly.length === 3, "category filter returns the three Umrah programs");
 
-const hajiOnly = filterPackages(packages, { ...emptyFilter, category: "haji" }, []);
+const hajiOnly = filterPackages(packages, { ...emptyFilter, category: "haji" }, [], "id");
 report(hajiOnly.length === 0, "Haji filter returns nothing while no Haji program exists");
 
-const privateOnly = filterPackages(packages, { ...emptyFilter, type: "private" }, []);
+const privateOnly = filterPackages(packages, { ...emptyFilter, type: "private" }, [], "id");
 report(
   privateOnly.length === 1 && privateOnly[0].slug === "private",
   "program filter narrows to a single program",
 );
 
-const keyword = filterPackages(packages, { ...emptyFilter, keyword: "keluarga" }, []);
+const keyword = filterPackages(packages, { ...emptyFilter, keyword: "keluarga" }, [], "id");
 report(keyword.length > 0, "keyword search matches program copy");
 
-const noKeywordMatch = filterPackages(packages, { ...emptyFilter, keyword: "zzzz" }, []);
+const noKeywordMatch = filterPackages(packages, { ...emptyFilter, keyword: "zzzz" }, [], "id");
 report(noKeywordMatch.length === 0, "keyword search can produce the empty state");
 
 report(!isFilterActive(emptyFilter), "a fresh filter is not reported as active");
 report(isFilterActive({ ...emptyFilter, keyword: "a" }), "a typed keyword is reported as active");
 
 // Both controls read published data, so they must stay empty while none exists.
-report(deriveMonths(packages).length === 0, "month options stay empty without departure data");
-report(deriveBudgetBands(packages).length === 0, "budget bands stay empty without prices");
+report(
+  deriveMonths(packages, "id").length === 0,
+  "month options stay empty without departure data",
+);
+report(
+  deriveBudgetBands(packages, "id").length === 0,
+  "budget bands stay empty without prices",
+);
 
 const priced = [{ ...packages[0], price: 29_500_000 }];
-report(deriveBudgetBands(priced).length > 0, "budget bands appear once a price exists");
-const banded = deriveBudgetBands(priced);
-const pricedInBand = filterPackages(priced, { ...emptyFilter, budget: banded[0].id }, banded);
+report(deriveBudgetBands(priced, "id").length > 0, "budget bands appear once a price exists");
+const banded = deriveBudgetBands(priced, "id");
+const pricedInBand = filterPackages(priced, { ...emptyFilter, budget: banded[0].id }, banded, "id");
 report(pricedInBand.length === 1, "a budget band can match a published price");
 
-report(formatRupiah(29_500_000) === "Rp29.500.000", "prices render in Indonesian format");
-report(formatRupiah(null) === null, "a missing price formats as null, not as zero");
+report(
+  formatRupiah(29_500_000, "id") === "Rp29.500.000",
+  "prices render in Indonesian grouping",
+);
+report(
+  formatRupiah(29_500_000, "en") === "Rp29,500,000",
+  "prices switch digit grouping with the language",
+);
+report(formatRupiah(null, "id") === null, "a missing price formats as null, not as zero");
 
-const split = splitDeparture("2027-01-14");
+const split = splitDeparture("2027-01-14", "id");
 report(
   split?.day === "14" && split?.rest === "Januari 2027",
   "the departure date splits into day and month for the date column",
 );
-report(splitDeparture(null) === null, "a missing departure date splits to null");
+report(splitDeparture(null, "id") === null, "a missing departure date splits to null");
+report(
+  splitDeparture("2027-01-14", "en")?.rest === "January 2027",
+  "month names follow the language instead of the system locale",
+);
 
 const sorted = sortByAvailability([
   { ...packages[2], availability: "full" as const },
@@ -380,26 +401,155 @@ report(sorted[0].availability === "available", "available departures sort ahead 
 report(isPlaceholder("[WHATSAPP_NUMBER]"), "a bracketed value counts as a placeholder");
 report(!isPlaceholder("628123456789"), "a real value does not count as a placeholder");
 report(isPlaceholder(null) && isPlaceholder(""), "empty values count as placeholders");
-report(whatsappHref() === null, "no WhatsApp link is built while the number is unset");
+report(
+  whatsappHref("id") === null && whatsappHref("en") === null,
+  "no WhatsApp link is built while the number is unset",
+);
 
 console.log("");
 console.log("Language switch");
 
 /**
- * Indonesian strings that belong to the interface only. Each entry has to be
- * gone from the English render of every route, so this list can only hold
- * phrases that no untranslated page body repeats. It grows as more of the site
- * is translated: "Panduan Jamaah" and "Kebijakan Privasi" join it once the
- * guide and legal pages carry English copy of their own.
+ * The language gate. Every route is rendered in English and scanned twice: once
+ * for interface phrases listed here, and once for content needles derived from
+ * the seed copy itself.
+ *
+ * The needles are derived rather than listed by hand. Any value whose two
+ * languages differ is a value that must not appear in its Indonesian form on
+ * the English page, and a new package or article is covered the moment it is
+ * added. Values that read the same in both languages, such as "Umrah Plus" or
+ * "Masjid Nabawi", are skipped because they are meant to.
  */
-const indonesianOnlyChrome = [
+const indonesianPhrases = [
   "Beranda",
   "Jelajahi",
   "Lewati ke konten utama",
   "Navigasi utama",
   "Tampilkan dalam",
   "Akun media sosial resmi belum ditautkan",
+  "Belum ditetapkan:",
+  "Dokumen terkait",
+  "Sebelum mendaftar",
+  "Minta ketentuan tertulis",
+  "Catatan penting",
+  "Kunjungan kantor",
+  "Saring program",
+  "Arti tanda ketersediaan",
+  "Yang paling sering ditanyakan",
+  "Kenapa kami menulis seperti ini",
+  "Yang tidak bisa kami janjikan",
+  "Gambaran proses",
+  "Ringkasan konsultasi",
+  "Susun ringkasan untuk disalin",
+  "Nomor WhatsApp resmi belum diatur",
+  "Tidak ada kursi",
 ];
+
+/**
+ * Words that live only in Indonesian copy here. Checked against the visible
+ * text rather than the markup, so identifiers such as `name="kebutuhan"` do
+ * not count as a leak.
+ */
+const indonesianWords = [
+  "Belum",
+  "belum",
+  "dengan",
+  "untuk",
+  "yang",
+  "tidak",
+  "Anda",
+  "Kami",
+  "jadwal",
+  "harga",
+  "paket",
+  "Panduan",
+  "keberangkatan",
+];
+
+function visibleText(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&[a-z]+;|&#\d+;/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+/**
+ * Short fragments match too easily, and a value containing quotes or an
+ * ampersand is escaped in the render, so a substring match would be unreliable.
+ */
+function trimmedNeedle(value: string): string | null {
+  const needle = value.trim();
+  if (needle.length < 12) return null;
+  if (/["'&<>]/.test(needle)) return null;
+  return needle;
+}
+
+function blockText(block: ArticleBlock): string {
+  return block.kind === "list" ? block.items.join(" ") : block.text;
+}
+
+const contentNeedles: string[] = (() => {
+  const found: string[] = [];
+
+  function add(value: Localized<string>) {
+    if (value.id === value.en) return;
+    const needle = trimmedNeedle(value.id);
+    if (needle) found.push(needle);
+  }
+
+  function addList(value: Localized<string[]>) {
+    value.id.forEach((entry, index) => {
+      if (entry === value.en[index]) return;
+      const needle = trimmedNeedle(entry);
+      if (needle) found.push(needle);
+    });
+  }
+
+  packages.forEach((item) => {
+    add(item.name);
+    add(item.focus);
+    add(item.summary);
+    addList(item.audiences);
+    addList(item.differentiators);
+  });
+
+  articles.forEach((article) => {
+    add(article.title);
+    add(article.excerpt);
+    add(article.category);
+    article.content.id.forEach((block, index) => {
+      const other = article.content.en[index];
+      if (!other) return;
+      const left = blockText(block);
+      if (left === blockText(other)) return;
+      const needle = trimmedNeedle(left);
+      if (needle) found.push(needle);
+    });
+  });
+
+  faqs.forEach((item) => {
+    add(item.question);
+    add(item.answer);
+  });
+
+  gallerySlots.forEach((slot) => {
+    add(slot.label);
+    add(slot.description);
+  });
+
+  journeySteps.forEach((step) => {
+    add(step.title);
+    add(step.description);
+    add(step.jamaahAction);
+  });
+
+  reasons.forEach((reason) => {
+    add(reason.title);
+    add(reason.description);
+  });
+
+  return Array.from(new Set(found));
+})();
 
 const englishFailures: string[] = [];
 for (const path of [...staticPaths, ...dynamicPaths]) {
@@ -415,17 +565,27 @@ for (const failure of englishFailures) {
   console.log(`      ${failure}`);
 }
 
+const wordPattern = new RegExp(`\\b(${indonesianWords.join("|")})\\b`);
+
 const leakedIndonesian = [...staticPaths, ...dynamicPaths].flatMap((path) => {
   const html = render(path, "en");
-  return indonesianOnlyChrome
+  const text = visibleText(html);
+  const phraseLeaks = indonesianPhrases
     .filter((needle) => html.includes(needle))
-    .map((needle) => `${path} still shows ${needle}`);
+    .map((needle) => `${path} still shows interface text: ${needle}`);
+  const contentLeaks = contentNeedles
+    .filter((needle) => html.includes(needle))
+    .map((needle) => `${path} still shows content: ${needle.slice(0, 60)}`);
+  const wordLeak = wordPattern.test(text)
+    ? [`${path} still shows an Indonesian word: ${text.match(wordPattern)?.[1]}`]
+    : [];
+  return [...phraseLeaks, ...contentLeaks, ...wordLeak];
 });
 report(
   leakedIndonesian.length === 0,
-  "no Indonesian interface text survives in the English render",
+  "no Indonesian copy survives in the English render of any route",
 );
-for (const leak of leakedIndonesian) {
+for (const leak of leakedIndonesian.slice(0, 20)) {
   console.log(`      ${leak}`);
 }
 
@@ -449,14 +609,20 @@ const blankForm: FormValues = {
   kebutuhan: [],
   pesan: "",
 };
-const blankErrors = validateConsultation(blankForm);
+const blankErrors = validateConsultation(blankForm, "id");
 report(
   Object.keys(blankErrors).length === 6,
   "an empty form reports one error per required field",
 );
 
-const badPhone = validateConsultation({ ...blankForm, nama: "A", whatsapp: "12" });
+const badPhone = validateConsultation({ ...blankForm, nama: "A", whatsapp: "12" }, "id");
 report(Boolean(badPhone.nama) && Boolean(badPhone.whatsapp), "short values are rejected");
+
+const blankErrorsEn = validateConsultation(blankForm, "en");
+report(
+  Object.values(blankErrorsEn).every((message) => !wordPattern.test(message ?? "")),
+  "validation messages follow the language of the reader",
+);
 
 const validForm: FormValues = {
   nama: "Aisyah Rahman",
@@ -469,11 +635,11 @@ const validForm: FormValues = {
   pesan: "Berangkat dengan orang tua.",
 };
 report(
-  Object.keys(validateConsultation(validForm)).length === 0,
+  Object.keys(validateConsultation(validForm, "id")).length === 0,
   "a complete form passes validation",
 );
 
-const summary = buildConsultationSummary(validForm);
+const summary = buildConsultationSummary(validForm, "id");
 report(
   ["Aisyah Rahman", "081234567890", "3", "Private", "Jamaah lansia"].every((part) =>
     summary.includes(part),
@@ -481,8 +647,25 @@ report(
   "the summary carries every field the jamaah filled in",
 );
 report(
-  buildConsultationSummary({ ...validForm, kebutuhan: [] }).includes("Kebutuhan khusus: Tidak ada"),
+  buildConsultationSummary({ ...validForm, kebutuhan: [] }, "id").includes(
+    "Kebutuhan khusus: Tidak ada",
+  ),
   "an empty optional list still renders in the summary",
+);
+// The free text here is English too: the summary mirrors whatever the reader
+// typed, so an Indonesian sentence in this fixture would be the reader's own
+// words rather than untranslated interface copy.
+const validFormEn: FormValues = {
+  ...validForm,
+  kebutuhan: ["Elderly pilgrims"],
+  pesan: "Travelling with my parents.",
+};
+const englishSummary = buildConsultationSummary(validFormEn, "en");
+report(
+  englishSummary.includes("*Consultation summary*") &&
+    englishSummary.includes("Special needs") &&
+    !wordPattern.test(englishSummary),
+  "the same summary is written in English for the English reader",
 );
 report(!summary.includes("\u2014"), "the generated summary contains no em dash");
 report(summary.includes("*Ringkasan konsultasi*"), "the chat message has a heading WhatsApp renders as bold");
@@ -591,7 +774,7 @@ report(
  */
 const storedHero = site.media.hero;
 const storedSlotPhoto = gallerySlots[0].photo;
-site.media.hero = { file: "/images/contoh-hero.jpg", alt: "Contoh foto hero" };
+site.media.hero = { file: "/images/contoh-hero.jpg", alt: both("Contoh foto hero") };
 gallerySlots[0].photo = "/images/contoh-galeri.jpg";
 const withPhotos = render("/") + render("/galeri");
 site.media.hero = storedHero;

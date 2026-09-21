@@ -74,3 +74,14 @@ export function useLanguage(): LanguageValue {
 export function useCopy<T>(copy: Localized<T>): T {
   return copy[useLang()];
 }
+
+/**
+ * Returns a reader for content values: `const L = usePick()` then `L(pkg.name)`.
+ * Content passes through components as `Localized` values, so without this every
+ * component would repeat `value[lang]` and the language lookup would be spread
+ * across the whole tree instead of sitting in one hook.
+ */
+export function usePick(): <T>(value: Localized<T>) => T {
+  const lang = useLang();
+  return useCallback(<T,>(value: Localized<T>) => value[lang], [lang]);
+}

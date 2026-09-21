@@ -1,5 +1,5 @@
 import type { Photo } from "../content/types";
-import type { Localized } from "../i18n/types";
+import type { Lang, Localized } from "../i18n/types";
 
 /**
  * Every value that the real business must supply lives here and nowhere else.
@@ -63,8 +63,11 @@ export const site = {
   // Digits only, international format, without a leading plus sign.
   whatsappNumber: "[WHATSAPP_NUMBER]",
   whatsappDisplay: "[NOMOR WHATSAPP]",
-  whatsappMessage:
-    "Assalamu'alaikum Rihlah Tour Haramain, saya ingin berkonsultasi mengenai program Umrah.",
+  // The greeting stays as it is in both languages; the request after it does not.
+  whatsappMessage: {
+    id: "Assalamu'alaikum Rihlah Tour Haramain, saya ingin berkonsultasi mengenai program Umrah.",
+    en: "Assalamu'alaikum Rihlah Tour Haramain, I would like to ask about the Umrah programme.",
+  } satisfies Localized<string>,
 
   email: "[EMAIL RESMI]",
   phone: "[TELEPON KANTOR]",
@@ -112,10 +115,10 @@ export function isPlaceholder(value: string | null | undefined): boolean {
   return PLACEHOLDER_PATTERN.test(value.trim());
 }
 
-export function whatsappHref(message: string = site.whatsappMessage): string | null {
+export function whatsappHref(lang: Lang, message?: string): string | null {
   if (isPlaceholder(site.whatsappNumber)) return null;
   const digits = site.whatsappNumber.replace(/\D/g, "");
-  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+  return `https://wa.me/${digits}?text=${encodeURIComponent(message ?? site.whatsappMessage[lang])}`;
 }
 
 export function contactHref(value: string, kind: "tel" | "mailto"): string | null {

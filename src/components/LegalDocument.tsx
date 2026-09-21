@@ -1,3 +1,6 @@
+import { useCopy } from "../i18n/LanguageProvider";
+import type { Localized } from "../i18n/types";
+
 export interface LegalSection {
   id: string;
   heading: string;
@@ -13,16 +16,30 @@ interface LegalDocumentProps {
   lastUpdated?: string | null;
 }
 
+const idCopy = {
+  updated: (date: string) => `Terakhir diperbarui ${date}.`,
+  noDate:
+    "Dokumen ini belum diberi tanggal berlaku karena masih menunggu persetujuan penyelenggara.",
+  pendingHeading: "Bagian yang masih harus diisi penyelenggara",
+};
+
+const enCopy: typeof idCopy = {
+  updated: (date: string) => `Last updated ${date}.`,
+  noDate:
+    "This document has no effective date yet because the organiser's approval is still pending.",
+  pendingHeading: "Sections the organiser still has to fill in",
+};
+
+const copy: Localized<typeof idCopy> = { id: idCopy, en: enCopy };
+
 export function LegalDocument({ sections, lastUpdated }: LegalDocumentProps) {
+  const c = useCopy(copy);
+
   return (
     <div className="flex flex-col gap-10">
-      {lastUpdated ? (
-        <p className="text-body-sm text-charcoal-muted">Terakhir diperbarui {lastUpdated}.</p>
-      ) : (
-        <p className="text-body-sm text-charcoal-muted">
-          Dokumen ini belum diberi tanggal berlaku karena masih menunggu persetujuan penyelenggara.
-        </p>
-      )}
+      <p className="text-body-sm text-charcoal-muted">
+        {lastUpdated ? c.updated(lastUpdated) : c.noDate}
+      </p>
 
       {sections.map((section) => (
         <section key={section.id} id={section.id} className="scroll-mt-28">
@@ -34,9 +51,7 @@ export function LegalDocument({ sections, lastUpdated }: LegalDocumentProps) {
           ))}
           {section.pending && section.pending.length > 0 ? (
             <div className="mt-5 rounded-lg border border-dashed border-emerald-300 bg-emerald-50/60 p-5">
-              <p className="text-label font-semibold text-charcoal-soft">
-                Bagian yang masih harus diisi penyelenggara
-              </p>
+              <p className="text-label font-semibold text-charcoal-soft">{c.pendingHeading}</p>
               <ul className="mt-3 flex flex-col gap-2">
                 {section.pending.map((item) => (
                   <li key={item} className="flex gap-2 text-body-sm text-charcoal-soft">

@@ -13,31 +13,206 @@ import { Media } from "../components/ui/Media";
 import { Reveal } from "../components/ui/Reveal";
 import { SectionHeading } from "../components/ui/SectionHeading";
 import { Tag } from "../components/ui/Tag";
+import { site, whatsappHref } from "../config/site";
 import { articles } from "../content/articles";
 import { faqs } from "../content/faq";
 import { packages, umrahPrograms } from "../content/packages";
 import { journeySteps, reasons } from "../content/site-content";
-import { site, whatsappHref } from "../config/site";
 import { usePackageFilter } from "../hooks/usePackageFilter";
-import { useCopy } from "../i18n/LanguageProvider";
+import { useCopy, useLang, usePick } from "../i18n/LanguageProvider";
+import { chrome } from "../i18n/strings";
+import type { Localized } from "../i18n/types";
 import { programLabels } from "../lib/packages";
 
 const featuredArticles = articles.slice(0, 1);
 const supportingArticles = articles.slice(1, 4);
 const homeFaqs = faqs.slice(0, 6);
 
+const idCopy = {
+  seoTitle: "Rihlah Tour Haramain | Paket Umrah dan Haji untuk Jamaah Indonesia",
+  seoDescription:
+    "Program Umrah Reguler, Plus, dan Private untuk jamaah Indonesia. Lihat jadwal keberangkatan, fasilitas, penginapan, dan cara berkonsultasi sebelum mendaftar.",
+  heroEyebrow: "Umrah & Haji untuk jamaah Indonesia",
+  heroTitle: "Menuju Baitullah, Bersama Rihlah.",
+  trustTitle: "Menunggu data terverifikasi",
+  trustBody:
+    "Nomor izin PPIU atau PIHK, jumlah keberangkatan, mitra maskapai, dan jumlah pembimbing belum diberikan ke situs ini. Bagian itu baru ditampilkan setelah dokumen resminya tersedia.",
+  heroSlotLabel: "Slot foto utama",
+  heroSlotNote:
+    "Satu foto asli berukuran 4 banding 5. Masjidil Haram, Masjid Nabawi, atau jamaah Indonesia di area ibadah, bukan foto berlisensi stok.",
+  finderEyebrow: "Pencarian cepat",
+  finderTitle: "Cari program yang sesuai",
+  finderIntro:
+    "Saring berdasarkan jenis perjalanan dan preferensi program. Filter bulan dan anggaran aktif setelah jadwal dipublikasikan.",
+  showFilter: "Tampilkan filter",
+  hideFilter: "Sembunyikan filter",
+  umrahEyebrow: "Paket Umrah",
+  umrahTitle: "Tiga cara berangkat, satu tujuan yang sama",
+  umrahIntro:
+    "Reguler, Plus, dan Private bukan tingkatan harga. Ketiganya menjawab kebutuhan yang berbeda, terutama soal tanggal dan ritme perjalanan.",
+  seeDetail: "Lihat Detail Paket",
+  scheduleEyebrow: "Jadwal keberangkatan",
+  scheduleTitle: "Kapan Anda ingin berangkat?",
+  scheduleIntro:
+    "Setiap keberangkatan menampilkan tanggal, durasi, maskapai, penginapan, harga, dan sisa kursi. Yang belum ditetapkan ditandai apa adanya.",
+  scheduleEmptyTitle: "Belum ada jadwal keberangkatan yang dipublikasikan.",
+  scheduleEmptyBody:
+    "Tanggal, maskapai, penginapan, dan harga untuk keberangkatan berikutnya belum ditetapkan, jadi kami tidak menampilkan perkiraan. Sampaikan perkiraan waktu Anda lewat konsultasi supaya tim bisa mengabari begitu jadwalnya dibuka.",
+  openSchedule: "Buka halaman jadwal",
+  legendTitle: "Arti tanda ketersediaan",
+  legendIntro: "Status dibedakan oleh bentuk dan tulisan, bukan hanya warna.",
+  whyEyebrow: "Kenapa Rihlah",
+  whyTitle: "Yang kami jelaskan sebelum Anda membayar",
+  processEyebrow: "Gambaran proses",
+  processTitle: "Delapan tahap dari konsultasi sampai kembali",
+  processIntro:
+    "Tiap tahap menyebut apa yang tim kerjakan dan apa yang perlu Anda siapkan.",
+  prepareLabel: "Yang Anda siapkan: ",
+  hajiEyebrow: "Program Haji",
+  hajiTitle: "Yang harus jelas sebelum memilih penyelenggara",
+  hajiIntro:
+    "Program Haji terikat ketentuan resmi dan kuota. Halaman ini menampilkan data itu setelah dokumennya ada, dan sampai saat itu kami menunjukkan cara memeriksanya sendiri.",
+  hajiStatusTag: "Status halaman ini",
+  hajiStatusBody:
+    "Informasi program, status izin, dan data penyelenggara belum diisi. Bagian itu hanya ditampilkan setelah diambil dari dokumen resmi.",
+  hajiChecks: [
+    "Nama badan usaha dan nomor izin harus cocok dengan dokumen penawaran.",
+    "Rincian fasilitas, biaya, dan hal yang tidak termasuk diminta secara tertulis.",
+    "Pembayaran diarahkan ke rekening atas nama badan usaha, bukan rekening pribadi.",
+  ],
+  openHaji: "Buka halaman Program Haji",
+  packageEyebrow: "Isi halaman paket",
+  packageTitle: "Yang selalu kami cantumkan",
+  packageIntro:
+    "Kalau sebuah baris masih bertanda belum ditetapkan, artinya datanya memang belum ada, bukan disembunyikan.",
+  packageFields: [
+    "Durasi dan jumlah malam",
+    "Tanggal keberangkatan",
+    "Maskapai dan rute",
+    "Hotel Makkah dan Madinah",
+    "Tipe kamar dan jarak ke area ibadah",
+    "Fasilitas yang termasuk",
+    "Fasilitas yang tidak termasuk",
+    "Itinerary harian",
+    "Dokumen yang perlu disiapkan",
+    "Syarat dan ketentuan pembatalan",
+  ],
+  guideEyebrow: "Panduan jamaah",
+  guideTitle: "Persiapan yang bisa dimulai sekarang",
+  guideIntro:
+    "Tulisan di bawah membahas dokumen, ritme perjalanan bersama orang tua, perlengkapan, dan manasik.",
+  allGuides: "Lihat semua panduan jamaah",
+  faqEyebrow: "Pertanyaan",
+  faqTitle: "Yang paling sering ditanyakan",
+  faqIntro: "Jawaban di bawah menyebut apa yang sudah pasti dan di mana sisanya diatur.",
+  allFaqs: "Buka semua pertanyaan",
+  ctaTitle: "Konsultasikan rencana Umrah Anda",
+  ctaBody:
+    "Sampaikan jumlah jamaah, perkiraan waktu, dan kebutuhan khusus. Tim akan menyusun pilihan program beserta rincian biayanya untuk dibahas bersama.",
+  ctaForm: "Isi formulir konsultasi",
+  ctaWhatsapp: "Chat WhatsApp resmi",
+  ctaContact: "Lihat kanal kontak resmi",
+};
+
+const enCopy: typeof idCopy = {
+  seoTitle: "Rihlah Tour Haramain | Umrah and Hajj packages for Indonesian pilgrims",
+  seoDescription:
+    "Regular, Plus and Private Umrah programmes for Indonesian pilgrims. See departure dates, facilities, accommodation, and how to talk to the team before registering.",
+  heroEyebrow: "Umrah & Hajj for Indonesian pilgrims",
+  heroTitle: "On the way to Baitullah, together with Rihlah.",
+  trustTitle: "Waiting on verified data",
+  trustBody:
+    "The PPIU or PIHK licence number, number of departures, airline partners and number of guides have not been given to this site. That part appears only once the official documents exist.",
+  heroSlotLabel: "Main photo slot",
+  heroSlotNote:
+    "A single original photo in a 4 by 5 frame. Masjidil Haram, Masjid Nabawi, or Indonesian pilgrims in the worship area, not a licensed stock image.",
+  finderEyebrow: "Quick search",
+  finderTitle: "Find the programme that fits",
+  finderIntro:
+    "Narrow it down by trip type and programme preference. The month and budget filters switch on once a schedule is published.",
+  showFilter: "Show filters",
+  hideFilter: "Hide filters",
+  umrahEyebrow: "Umrah packages",
+  umrahTitle: "Three ways to travel, one shared destination",
+  umrahIntro:
+    "Regular, Plus and Private are not price tiers. Each answers a different need, above all around dates and the pace of the trip.",
+  seeDetail: "See package details",
+  scheduleEyebrow: "Departure schedule",
+  scheduleTitle: "When would you like to depart?",
+  scheduleIntro:
+    "Every departure lists the date, duration, airline, accommodation, price and remaining seats. Anything not settled yet is labelled as such.",
+  scheduleEmptyTitle: "No departure schedule has been published yet.",
+  scheduleEmptyBody:
+    "Dates, airlines, accommodation and prices for upcoming departures are not set yet, so we do not show estimates. Tell us roughly when you want to travel through a consultation and the team can let you know once the schedule opens.",
+  openSchedule: "Open the schedule page",
+  legendTitle: "What the availability marks mean",
+  legendIntro: "Status is carried by shape and text, not by colour alone.",
+  whyEyebrow: "Why Rihlah",
+  whyTitle: "What we explain before you pay",
+  processEyebrow: "How it works",
+  processTitle: "Eight stages from the first conversation to coming home",
+  processIntro: "Each stage names what the team does and what you need to prepare.",
+  prepareLabel: "What you prepare: ",
+  hajiEyebrow: "Hajj programme",
+  hajiTitle: "What has to be clear before choosing an organiser",
+  hajiIntro:
+    "The Hajj programme is bound by official rules and quota. This page shows that data once the documents exist, and until then it shows you how to check it yourself.",
+  hajiStatusTag: "Status of this page",
+  hajiStatusBody:
+    "Programme information, licence status and organiser data have not been filled in. That part appears only once it is taken from official documents.",
+  hajiChecks: [
+    "The business name and licence number have to match the offer documents.",
+    "Facilities, costs and what is not included should be requested in writing.",
+    "Payment goes to an account in the business name, never a personal account.",
+  ],
+  openHaji: "Open the Hajj programme page",
+  packageEyebrow: "On every package page",
+  packageTitle: "What we always set out",
+  packageIntro:
+    "If a row is still marked as not set, the data genuinely does not exist yet. It is not being held back.",
+  packageFields: [
+    "Duration and number of nights",
+    "Departure date",
+    "Airline and route",
+    "Hotels in Makkah and Madinah",
+    "Room type and distance to the worship area",
+    "Facilities that are included",
+    "Facilities that are not included",
+    "Daily itinerary",
+    "Documents to prepare",
+    "Cancellation terms and conditions",
+  ],
+  guideEyebrow: "Pilgrim guides",
+  guideTitle: "Preparation you can start now",
+  guideIntro:
+    "The writing below covers documents, travelling at your parents' pace, packing, and the manasik briefing.",
+  allGuides: "See all pilgrim guides",
+  faqEyebrow: "Questions",
+  faqTitle: "The questions that come up most",
+  faqIntro: "The answers below state what is settled and where the rest is documented.",
+  allFaqs: "Open all questions",
+  ctaTitle: "Talk through your Umrah plan",
+  ctaBody:
+    "Tell us how many people are travelling, roughly when, and any special needs. The team will put together programme options with their costs for you to go through together.",
+  ctaForm: "Fill in the consultation form",
+  ctaWhatsapp: "Chat on official WhatsApp",
+  ctaContact: "See the official contact channels",
+};
+
+const copy: Localized<typeof idCopy> = { id: idCopy, en: enCopy };
+
 export function HomePage() {
+  const c = useCopy(copy);
+  const L = usePick();
+  const lang = useLang();
   const finder = usePackageFilter(packages);
   const [filterOpen, setFilterOpen] = useState(false);
-  const operatingNote = useCopy(site.operatingNote);
-  const wa = whatsappHref();
+  const hero = site.media.hero;
+  const wa = whatsappHref(lang);
 
   return (
     <>
-      <Seo
-        title="Rihlah Tour Haramain | Paket Umrah dan Haji untuk Jamaah Indonesia"
-        description="Program Umrah Reguler, Plus, dan Private untuk jamaah Indonesia. Lihat jadwal keberangkatan, fasilitas, penginapan, dan cara berkonsultasi sebelum mendaftar."
-      />
+      <Seo title={c.seoTitle} description={c.seoDescription} />
 
       {/* 1. Hero. Asymmetric: the message holds the left, the photo slot holds
           the right, and the motif runs along the bottom edge only. */}
@@ -45,40 +220,34 @@ export function HomePage() {
         <div className="shell-container relative py-section-lg">
           <div className="grid gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-16">
             <div className="flex flex-col gap-6">
-              <p className="eyebrow">Umrah &amp; Haji untuk jamaah Indonesia</p>
-              <h1 className="text-display-xl">Menuju Baitullah, Bersama Rihlah.</h1>
-              <p className="max-w-prose text-body-lg text-emerald-100">{operatingNote}</p>
+              <p className="eyebrow">{c.heroEyebrow}</p>
+              <h1 className="text-display-xl">{c.heroTitle}</h1>
+              <p className="max-w-prose text-body-lg text-emerald-100">{L(site.operatingNote)}</p>
               <div className="flex flex-wrap gap-3">
                 <ButtonLink to="/paket-umrah" variant="primary" size="lg" onDark>
-                  Lihat Paket Umrah
+                  {chrome[lang].cta.viewPackages}
                 </ButtonLink>
                 <ButtonLink to="/konsultasi" variant="outline" size="lg" onDark>
-                  Konsultasikan Rencana Umrah
+                  {chrome[lang].cta.consultPlan}
                 </ButtonLink>
               </div>
 
               {/* Trust facts cannot be invented. This names what is missing
                   instead of borrowing a number from nowhere. */}
               <div className="mt-2 max-w-prose rounded-lg border border-emerald-700 bg-emerald-900/50 p-4">
-                <p className="text-body-sm font-semibold text-shell">
-                  Menunggu data terverifikasi
-                </p>
-                <p className="mt-1 text-body-sm text-emerald-100">
-                  Nomor izin PPIU atau PIHK, jumlah keberangkatan, mitra maskapai, dan jumlah
-                  pembimbing belum diberikan ke situs ini. Bagian itu baru ditampilkan setelah
-                  dokumen resminya tersedia.
-                </p>
+                <p className="text-body-sm font-semibold text-shell">{c.trustTitle}</p>
+                <p className="mt-1 text-body-sm text-emerald-100">{c.trustBody}</p>
               </div>
             </div>
 
             <Media
-              src={site.media.hero?.file}
-              alt={site.media.hero?.alt ?? ""}
+              src={hero?.file}
+              alt={hero ? L(hero.alt) : ""}
               ratio="4/5"
               priority
               onDark
-              slotLabel="Slot foto utama"
-              slotNote="Satu foto asli berukuran 4 banding 5. Masjidil Haram, Masjid Nabawi, atau jamaah Indonesia di area ibadah, bukan foto berlisensi stok."
+              slotLabel={c.heroSlotLabel}
+              slotNote={c.heroSlotNote}
             />
           </div>
         </div>
@@ -92,9 +261,9 @@ export function HomePage() {
           <div className="relative -mt-10 rounded-xl border border-emerald-100 bg-shell p-5 shadow-panel sm:p-7 lg:-mt-14 lg:p-8">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <SectionHeading
-                eyebrow="Pencarian cepat"
-                title="Cari program yang sesuai"
-                intro="Saring berdasarkan jenis perjalanan dan preferensi program. Filter bulan dan anggaran aktif setelah jadwal dipublikasikan."
+                eyebrow={c.finderEyebrow}
+                title={c.finderTitle}
+                intro={c.finderIntro}
                 headingId="finder-title"
               />
               <button
@@ -103,7 +272,7 @@ export function HomePage() {
                 aria-expanded={filterOpen}
                 className="inline-flex min-h-11 items-center rounded-md border border-emerald-800 px-4 text-body-sm font-semibold text-emerald-800 hover:bg-emerald-50 lg:hidden"
               >
-                {filterOpen ? "Sembunyikan filter" : "Tampilkan filter"}
+                {filterOpen ? c.hideFilter : c.showFilter}
               </button>
             </div>
 
@@ -121,11 +290,7 @@ export function HomePage() {
             </div>
 
             <div className="mt-8">
-              <PackageResults
-                items={finder.results}
-                active={finder.active}
-                limit={2}
-              />
+              <PackageResults items={finder.results} active={finder.active} limit={2} />
             </div>
           </div>
         </div>
@@ -137,9 +302,9 @@ export function HomePage() {
         <div className="shell-container">
           <Reveal>
             <SectionHeading
-              eyebrow="Paket Umrah"
-              title="Tiga cara berangkat, satu tujuan yang sama"
-              intro="Reguler, Plus, dan Private bukan tingkatan harga. Ketiganya menjawab kebutuhan yang berbeda, terutama soal tanggal dan ritme perjalanan."
+              eyebrow={c.umrahEyebrow}
+              title={c.umrahTitle}
+              intro={c.umrahIntro}
               headingId="program-umrah-title"
             />
           </Reveal>
@@ -154,15 +319,15 @@ export function HomePage() {
                   {String(index + 1).padStart(2, "0")}
                 </p>
                 <div>
-                  <h3 className="font-display text-2xl text-emerald-900">{program.name}</h3>
+                  <h3 className="font-display text-2xl text-emerald-900">{L(program.name)}</h3>
                   <p className="mt-1 text-label font-semibold uppercase text-charcoal-muted">
-                    {programLabels[program.type]}
+                    {programLabels[program.type][lang]}
                   </p>
                 </div>
                 <div className="flex flex-col gap-3">
-                  <p className="text-body-lg text-charcoal-soft">{program.focus}</p>
+                  <p className="text-body-lg text-charcoal-soft">{L(program.focus)}</p>
                   <ul className="flex flex-col gap-2">
-                    {program.differentiators.map((item) => (
+                    {L(program.differentiators).map((item) => (
                       <li key={item} className="flex gap-2 text-body-sm text-charcoal-soft">
                         <span
                           aria-hidden="true"
@@ -176,7 +341,7 @@ export function HomePage() {
                     to={`/paket-umrah/${program.slug}`}
                     className="self-start rounded-sm text-body-sm font-semibold text-emerald-800 underline decoration-emerald-400 underline-offset-4 hover:decoration-emerald-800"
                   >
-                    Lihat Detail Paket {program.name}
+                    {c.seeDetail} {L(program.name)}
                   </Link>
                 </div>
               </li>
@@ -191,9 +356,9 @@ export function HomePage() {
         <div className="shell-container">
           <Reveal>
             <SectionHeading
-              eyebrow="Jadwal keberangkatan"
-              title="Kapan Anda ingin berangkat?"
-              intro="Setiap keberangkatan menampilkan tanggal, durasi, maskapai, penginapan, harga, dan sisa kursi. Yang belum ditetapkan ditandai apa adanya."
+              eyebrow={c.scheduleEyebrow}
+              title={c.scheduleTitle}
+              intro={c.scheduleIntro}
               headingId="jadwal-title"
             />
           </Reveal>
@@ -202,15 +367,15 @@ export function HomePage() {
             <div className="flex flex-col gap-5">
               {packages.length === 0 ? (
                 <EmptyState
-                  title="Belum ada jadwal keberangkatan yang dipublikasikan."
-                  description="Tanggal, maskapai, penginapan, dan harga untuk keberangkatan berikutnya belum ditetapkan, jadi kami tidak menampilkan perkiraan. Sampaikan perkiraan waktu Anda lewat konsultasi supaya tim bisa mengabari begitu jadwalnya dibuka."
+                  title={c.scheduleEmptyTitle}
+                  description={c.scheduleEmptyBody}
                   action={
                     <>
                       <ButtonLink to="/konsultasi" variant="primary">
-                        Konsultasikan Rencana Umrah
+                        {chrome[lang].cta.consultPlan}
                       </ButtonLink>
                       <ButtonLink to="/jadwal" variant="outline">
-                        Buka halaman jadwal
+                        {c.openSchedule}
                       </ButtonLink>
                     </>
                   }
@@ -221,10 +386,8 @@ export function HomePage() {
             </div>
 
             <div className="rounded-lg border border-emerald-200 bg-shell p-5">
-              <h3 className="text-display-sm text-emerald-900">Arti tanda ketersediaan</h3>
-              <p className="mt-2 text-body-sm text-charcoal-soft">
-                Status dibedakan oleh bentuk dan tulisan, bukan hanya warna.
-              </p>
+              <h3 className="text-display-sm text-emerald-900">{c.legendTitle}</h3>
+              <p className="mt-2 text-body-sm text-charcoal-soft">{c.legendIntro}</p>
               <div className="mt-5">
                 <StatusLegend />
               </div>
@@ -240,8 +403,8 @@ export function HomePage() {
           <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
             <Reveal>
               <SectionHeading
-                eyebrow="Kenapa Rihlah"
-                title="Yang kami jelaskan sebelum Anda membayar"
+                eyebrow={c.whyEyebrow}
+                title={c.whyTitle}
                 headingId="kenapa-title"
               />
             </Reveal>
@@ -250,18 +413,18 @@ export function HomePage() {
                 reason.lead ? (
                   <Reveal key={reason.id}>
                     <div className="rounded-lg border border-emerald-800 bg-emerald-800 p-6 text-shell on-dark">
-                      <h3 className="text-display-sm">{reason.title}</h3>
-                      <p className="mt-3 text-body text-emerald-100">{reason.description}</p>
+                      <h3 className="text-display-sm">{L(reason.title)}</h3>
+                      <p className="mt-3 text-body text-emerald-100">{L(reason.description)}</p>
                     </div>
                   </Reveal>
                 ) : (
                   <Reveal key={reason.id}>
                     <div className="border-t border-emerald-100 pt-5">
                       <h3 className="text-body-lg font-semibold text-emerald-900">
-                        {reason.title}
+                        {L(reason.title)}
                       </h3>
                       <p className="mt-1 max-w-prose text-body-sm text-charcoal-soft">
-                        {reason.description}
+                        {L(reason.description)}
                       </p>
                     </div>
                   </Reveal>
@@ -278,9 +441,9 @@ export function HomePage() {
         <div className="shell-container">
           <Reveal>
             <SectionHeading
-              eyebrow="Gambaran proses"
-              title="Delapan tahap dari konsultasi sampai kembali"
-              intro="Tiap tahap menyebut apa yang tim kerjakan dan apa yang perlu Anda siapkan."
+              eyebrow={c.processEyebrow}
+              title={c.processTitle}
+              intro={c.processIntro}
               headingId="proses-title"
             />
           </Reveal>
@@ -292,11 +455,11 @@ export function HomePage() {
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <div className="flex flex-col gap-2">
-                  <h3 className="text-body-lg font-semibold text-emerald-900">{step.title}</h3>
-                  <p className="text-body-sm text-charcoal-soft">{step.description}</p>
+                  <h3 className="text-body-lg font-semibold text-emerald-900">{L(step.title)}</h3>
+                  <p className="text-body-sm text-charcoal-soft">{L(step.description)}</p>
                   <p className="text-body-sm text-charcoal-muted">
-                    <span className="font-semibold text-charcoal">Yang Anda siapkan: </span>
-                    {step.jamaahAction}
+                    <span className="font-semibold text-charcoal">{c.prepareLabel}</span>
+                    {L(step.jamaahAction)}
                   </p>
                 </div>
               </li>
@@ -312,9 +475,9 @@ export function HomePage() {
           <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
             <Reveal>
               <SectionHeading
-                eyebrow="Program Haji"
-                title="Yang harus jelas sebelum memilih penyelenggara"
-                intro="Program Haji terikat ketentuan resmi dan kuota. Halaman ini menampilkan data itu setelah dokumennya ada, dan sampai saat itu kami menunjukkan cara memeriksanya sendiri."
+                eyebrow={c.hajiEyebrow}
+                title={c.hajiTitle}
+                intro={c.hajiIntro}
                 onDark
                 headingId="haji-title"
               />
@@ -322,18 +485,11 @@ export function HomePage() {
             <Reveal>
               <div className="flex flex-col gap-5">
                 <div className="rounded-lg border border-emerald-700 bg-emerald-800 p-5">
-                  <Tag onDark>Status halaman ini</Tag>
-                  <p className="mt-3 text-body text-emerald-100">
-                    Informasi program, status izin, dan data penyelenggara belum diisi. Bagian itu
-                    hanya ditampilkan setelah diambil dari dokumen resmi.
-                  </p>
+                  <Tag onDark>{c.hajiStatusTag}</Tag>
+                  <p className="mt-3 text-body text-emerald-100">{c.hajiStatusBody}</p>
                 </div>
                 <ul className="flex flex-col gap-3">
-                  {[
-                    "Nama badan usaha dan nomor izin harus cocok dengan dokumen penawaran.",
-                    "Rincian fasilitas, biaya, dan hal yang tidak termasuk diminta secara tertulis.",
-                    "Pembayaran diarahkan ke rekening atas nama badan usaha, bukan rekening pribadi.",
-                  ].map((item) => (
+                  {c.hajiChecks.map((item) => (
                     <li key={item} className="flex gap-3 text-body-sm text-emerald-100">
                       <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 bg-gold" />
                       {item}
@@ -347,7 +503,7 @@ export function HomePage() {
                   onDark
                   className="self-start"
                 >
-                  Buka halaman Program Haji
+                  {c.openHaji}
                 </ButtonLink>
               </div>
             </Reveal>
@@ -363,25 +519,14 @@ export function HomePage() {
           <div className="grid gap-8 lg:grid-cols-[1fr_1.4fr] lg:gap-16">
             <Reveal>
               <SectionHeading
-                eyebrow="Isi halaman paket"
-                title="Yang selalu kami cantumkan"
-                intro="Kalau sebuah baris masih bertanda belum ditetapkan, artinya datanya memang belum ada, bukan disembunyikan."
+                eyebrow={c.packageEyebrow}
+                title={c.packageTitle}
+                intro={c.packageIntro}
                 headingId="kelengkapan-title"
               />
             </Reveal>
             <ul className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
-              {[
-                "Durasi dan jumlah malam",
-                "Tanggal keberangkatan",
-                "Maskapai dan rute",
-                "Hotel Makkah dan Madinah",
-                "Tipe kamar dan jarak ke area ibadah",
-                "Fasilitas yang termasuk",
-                "Fasilitas yang tidak termasuk",
-                "Itinerary harian",
-                "Dokumen yang perlu disiapkan",
-                "Syarat dan ketentuan pembatalan",
-              ].map((item) => (
+              {c.packageFields.map((item) => (
                 <li
                   key={item}
                   className="flex gap-2 border-b border-emerald-100 py-2.5 text-body-sm text-charcoal-soft"
@@ -400,9 +545,9 @@ export function HomePage() {
         <div className="shell-container">
           <Reveal>
             <SectionHeading
-              eyebrow="Panduan jamaah"
-              title="Persiapan yang bisa dimulai sekarang"
-              intro="Tulisan di bawah membahas dokumen, ritme perjalanan bersama orang tua, perlengkapan, dan manasik."
+              eyebrow={c.guideEyebrow}
+              title={c.guideTitle}
+              intro={c.guideIntro}
               headingId="panduan-title"
             />
           </Reveal>
@@ -421,7 +566,7 @@ export function HomePage() {
           </div>
 
           <ButtonLink to="/panduan" variant="outline" className="mt-8">
-            Lihat semua panduan jamaah
+            {c.allGuides}
           </ButtonLink>
         </div>
       </section>
@@ -433,13 +578,13 @@ export function HomePage() {
           <div className="grid gap-10 lg:grid-cols-[0.8fr_1.4fr] lg:gap-16">
             <Reveal className="lg:sticky lg:top-28 lg:self-start">
               <SectionHeading
-                eyebrow="Pertanyaan"
-                title="Yang paling sering ditanyakan"
-                intro="Jawaban di bawah menyebut apa yang sudah pasti dan di mana sisanya diatur."
+                eyebrow={c.faqEyebrow}
+                title={c.faqTitle}
+                intro={c.faqIntro}
                 headingId="faq-title"
               />
               <ButtonLink to="/faq" variant="outline" className="mt-6">
-                Buka semua pertanyaan
+                {c.allFaqs}
               </ButtonLink>
             </Reveal>
             <FAQAccordion items={homeFaqs} idPrefix="home-faq" />
@@ -453,24 +598,21 @@ export function HomePage() {
           <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr] lg:items-center">
             <Reveal className="flex flex-col gap-4">
               <h2 id="cta-title" className="text-display-md text-emerald-900">
-                Konsultasikan rencana Umrah Anda
+                {c.ctaTitle}
               </h2>
-              <p className="max-w-prose text-body-lg text-charcoal-soft">
-                Sampaikan jumlah jamaah, perkiraan waktu, dan kebutuhan khusus. Tim akan menyusun
-                pilihan program beserta rincian biayanya untuk dibahas bersama.
-              </p>
+              <p className="max-w-prose text-body-lg text-charcoal-soft">{c.ctaBody}</p>
             </Reveal>
             <div className="flex flex-wrap gap-3">
               <ButtonLink to="/konsultasi" variant="accent" size="lg">
-                Isi formulir konsultasi
+                {c.ctaForm}
               </ButtonLink>
               {wa ? (
                 <ButtonAnchor href={wa} variant="outline" size="lg" target="_blank" rel="noreferrer">
-                  Chat WhatsApp resmi
+                  {c.ctaWhatsapp}
                 </ButtonAnchor>
               ) : (
                 <ButtonLink to="/kontak" variant="outline" size="lg">
-                  Lihat kanal kontak resmi
+                  {c.ctaContact}
                 </ButtonLink>
               )}
             </div>

@@ -1,4 +1,6 @@
 import type { PackageCategory, ProgramType, TravelPackage } from "../content/types";
+import { both, t } from "../i18n/types";
+import type { Lang, Localized } from "../i18n/types";
 import { formatMonth } from "./format";
 
 export interface PackageFilterState {
@@ -34,12 +36,24 @@ const BUDGET_STEPS: Array<{ id: string; max: number | null }> = [
   { id: "b4", max: null },
 ];
 
+function bandLabel(min: number, max: number | null, lang: Lang): string {
+  const millions = (value: number) => (value / 1_000_000).toFixed(0);
+  if (max === null) {
+    return lang === "id"
+      ? `Di atas Rp${millions(min)} juta`
+      : `Above Rp${millions(min)} million`;
+  }
+  return lang === "id"
+    ? `Rp${millions(min)} - Rp${millions(max)} juta`
+    : `Rp${millions(min)} - ${millions(max)} million`;
+}
+
 /**
  * Bands are derived from the prices that actually exist. Until the business
  * publishes a price the list comes back empty, and the control stays locked
  * with an explanation rather than offering ranges nobody can match.
  */
-export function deriveBudgetBands(items: TravelPackage[]): BudgetBand[] {
+export function deriveBudgetBands(items: TravelPackage[], lang: Lang): BudgetBand[] {
   const prices = items
     .map((item) => item.price)
     .filter((price): price is number => typeof price === "number");
@@ -55,15 +69,14 @@ export function deriveBudgetBands(items: TravelPackage[]): BudgetBand[] {
   }).map((step, index, list) => {
     const previous = index === 0 ? null : list[index - 1].max;
     const min = previous === null ? 0 : previous;
-    const label =
-      step.max === null
-        ? `Di atas Rp${(min / 1_000_000).toFixed(0)} juta`
-        : `Rp${(min / 1_000_000).toFixed(0)} - Rp${(step.max / 1_000_000).toFixed(0)} juta`;
-    return { id: step.id, label, min, max: step.max };
+    return { id: step.id, label: bandLabel(min, step.max, lang), min, max: step.max };
   });
 }
 
-export function deriveMonths(items: TravelPackage[]): Array<{ value: string; label: string }> {
+export function deriveMonths(
+  items: TravelPackage[],
+  lang: Lang,
+): Array<{ value: string; label: string }> {
   const months = Array.from(
     new Set(
       items
@@ -72,23 +85,31 @@ export function deriveMonths(items: TravelPackage[]): Array<{ value: string; lab
     ),
   ).sort();
 
-  return months.map((value) => ({ value, label: formatMonth(value) ?? value }));
+  return months.map((value) => ({ value, label: formatMonth(value, lang) ?? value }));
 }
 
 function normalize(value: string): string {
   return value.toLowerCase().trim();
 }
 
-function matchesKeyword(item: TravelPackage, keyword: string): boolean {
+/**
+ * Search runs against the text the reader is actually looking at, so an English
+ * reader cannot get a hit on Indonesian words they cannot see, and vice versa.
+ * The programme type is included in both spellings because it is a label, not
+ * prose: someone typing "reguler" on the English page still means that filter.
+ */
+function matchesKeyword(item: TravelPackage, keyword: string, lang: Lang): boolean {
   const needle = normalize(keyword);
   if (!needle) return true;
   const haystack = [
-    item.name,
-    item.focus,
-    item.summary,
-    item.type,
-    item.category,
-    ...item.audiences,
+    item.name[lang],
+    item.focus[lang],
+    item.summary[lang],
+    programLabels[item.type][lang],
+    programLabels[item.type].id,
+    categoryLabels[item.category][lang],
+    categoryLabels[item.category].id,
+    ...item.audiences[lang],
   ]
     .join(" ")
     .toLowerCase();
@@ -99,6 +120,7 @@ export function filterPackages(
   items: TravelPackage[],
   state: PackageFilterState,
   bands: BudgetBand[],
+  lang: Lang,
 ): TravelPackage[] {
   const band = bands.find((entry) => entry.id === state.budget) ?? null;
 
@@ -111,7 +133,7 @@ export function filterPackages(
       if (item.price < band.min) return false;
       if (band.max !== null && item.price > band.max) return false;
     }
-    return matchesKeyword(item, state.keyword);
+    return matchesKeyword(item, state.keyword, lang);
   });
 }
 
@@ -125,13 +147,14 @@ export function isFilterActive(state: PackageFilterState): boolean {
   );
 }
 
-export const categoryLabels: Record<PackageCategory, string> = {
-  umrah: "Umrah",
-  haji: "Haji",
+/** "Umrah" and "Haji" are the programme names in both languages. */
+export const categoryLabels: Record<PackageCategory, Localized<string>> = {
+  umrah: both("Umrah"),
+  haji: both("Haji"),
 };
 
-export const programLabels: Record<ProgramType, string> = {
-  reguler: "Reguler",
-  plus: "Plus",
-  private: "Private",
+export const programLabels: Record<ProgramType, Localized<string>> = {
+  reguler: t("Reguler", "Regular"),
+  plus: both("Plus"),
+  private: both("Private"),
 };

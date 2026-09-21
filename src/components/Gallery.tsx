@@ -1,5 +1,19 @@
 import { gallerySlots } from "../content/site-content";
+import { useCopy, usePick } from "../i18n/LanguageProvider";
+import type { Localized } from "../i18n/types";
 import { Media } from "./ui/Media";
+
+const idCopy = {
+  emptyNote:
+    "Galeri ini sengaja kosong. Dokumentasi perjalanan akan diunggah setelah tim memiliki foto kegiatan sendiri, karena foto stok tidak menunjukkan penginapan, kendaraan, atau suasana rombongan yang benar-benar Anda dapatkan.",
+};
+
+const enCopy: typeof idCopy = {
+  emptyNote:
+    "This gallery is empty on purpose. Trip documentation will be uploaded once the team has photos of its own activities, because stock images would not show the accommodation, vehicles or group atmosphere you actually get.",
+};
+
+const copy: Localized<typeof idCopy> = { id: idCopy, en: enCopy };
 
 /**
  * Real documentation only. A slot without a photo explains what belongs there
@@ -7,6 +21,8 @@ import { Media } from "./ui/Media";
  * vehicles, or group sizes the team does not actually provide.
  */
 export function Gallery() {
+  const c = useCopy(copy);
+  const L = usePick();
   const withPhotos = gallerySlots.filter((slot) => slot.photo !== null).length;
 
   return (
@@ -16,20 +32,16 @@ export function Gallery() {
           <li key={slot.id}>
             <Media
               src={slot.photo}
-              alt={slot.label}
+              alt={L(slot.label)}
               ratio="4/3"
-              slotLabel={slot.label}
-              slotNote={slot.description}
+              slotLabel={L(slot.label)}
+              slotNote={L(slot.description)}
             />
           </li>
         ))}
       </ul>
       {withPhotos === 0 ? (
-        <p className="max-w-prose text-body-sm text-charcoal-soft">
-          Galeri ini sengaja kosong. Dokumentasi perjalanan akan diunggah setelah tim memiliki foto
-          kegiatan sendiri, karena foto stok tidak menunjukkan penginapan, kendaraan, atau suasana
-          rombongan yang benar-benar Anda dapatkan.
-        </p>
+        <p className="max-w-prose text-body-sm text-charcoal-soft">{c.emptyNote}</p>
       ) : null}
     </div>
   );

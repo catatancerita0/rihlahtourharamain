@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { isPlaceholder, site, whatsappHref } from "../config/site";
+import { useCopy, useLang } from "../i18n/LanguageProvider";
+import type { Lang, Localized } from "../i18n/types";
 import { Button, ButtonAnchor } from "./ui/Button";
 import { Input, Select, Textarea } from "./ui/Field";
 import { WhatsAppGlyph } from "./WhatsAppButton";
@@ -20,23 +22,161 @@ export type Errors = Partial<Record<keyof FormValues, string>>;
 
 type Status = "idle" | "copying" | "copied" | "handoff" | "awaitingChannel" | "copyError";
 
-const bulanOptions = [
-  { value: "secepatnya", label: "Secepatnya" },
-  { value: "1-3", label: "Dalam 1 sampai 3 bulan" },
-  { value: "3-6", label: "Dalam 3 sampai 6 bulan" },
-  { value: "6-12", label: "Dalam 6 sampai 12 bulan" },
-  { value: "belum", label: "Belum ditentukan" },
-];
+const idCopy = {
+  bulanOptions: [
+    { value: "secepatnya", label: "Secepatnya" },
+    { value: "1-3", label: "Dalam 1 sampai 3 bulan" },
+    { value: "3-6", label: "Dalam 3 sampai 6 bulan" },
+    { value: "6-12", label: "Dalam 6 sampai 12 bulan" },
+    { value: "belum", label: "Belum ditentukan" },
+  ],
+  programOptions: ["Belum tahu", "Reguler", "Plus", "Private"],
+  kebutuhanOptions: [
+    "Jamaah lansia",
+    "Membawa anak",
+    "Kebutuhan mobilitas",
+    "Rombongan atau kelompok",
+    "Kamar terpisah",
+  ],
+  errors: {
+    nama: "Isi nama lengkap sesuai dokumen, minimal 2 karakter.",
+    whatsapp: "Isi nomor WhatsApp yang aktif, 9 sampai 15 angka.",
+    jumlahJamaah: "Isi jumlah jamaah dengan angka antara 1 dan 200.",
+    jenis: "Pilih jenis perjalanan.",
+    bulan: "Pilih perkiraan bulan keberangkatan.",
+    program: "Pilih preferensi program.",
+  },
+  summaryHeading: "Ringkasan konsultasi",
+  summary: {
+    name: "Nama",
+    whatsapp: "Nomor WhatsApp",
+    jumlah: "Jumlah jamaah",
+    jenis: "Jenis perjalanan",
+    bulan: "Perkiraan keberangkatan",
+    program: "Preferensi program",
+    kebutuhan: "Kebutuhan khusus",
+    pesan: "Catatan",
+    none: "Tidak ada",
+  },
+  prefilled: (paket: string) => `Saya ingin menanyakan program ${paket}.`,
+  field: {
+    nama: "Nama lengkap",
+    whatsapp: "Nomor WhatsApp",
+    jumlah: "Jumlah jamaah",
+    jumlahHint: "Termasuk Anda sendiri.",
+    jenis: "Jenis perjalanan",
+    jenisPlaceholder: "Pilih jenis perjalanan",
+    bulan: "Perkiraan bulan keberangkatan",
+    bulanPlaceholder: "Pilih perkiraan waktu",
+    program: "Preferensi program",
+    programPlaceholder: "Pilih preferensi",
+    kebutuhan: "Kebutuhan khusus",
+    optional: "(opsional)",
+    pesan: "Catatan tambahan",
+    pesanHint: "Misalnya kota asal, kebutuhan kamar, atau pertanyaan tentang fasilitas.",
+  },
+  channelTitle: "Nomor WhatsApp resmi belum diatur.",
+  channelBody:
+    "Tombol kirim di bawah ini membuka WhatsApp dengan pesan yang sudah terisi. Selama nomor resmi belum diisi pada konfigurasi situs, tombolnya belum bisa dipakai dan Anda bisa menyusun ringkasan yang sama untuk dikirim lewat kanal resmi di halaman kontak.",
+  send: "Kirim ke WhatsApp",
+  noDocsNote:
+    "Kami tidak meminta dokumen atau pembayaran apa pun sebelum ada penawaran tertulis.",
+  compose: "Susun ringkasan untuk disalin",
+  errorNotice:
+    "Ada isian yang perlu diperbaiki. Periksa tanda di bawah kolom yang bersangkutan.",
+  handoffTitle: "WhatsApp dibuka di tab baru.",
+  handoffBody:
+    "Pesan sudah terisi ringkasan konsultasi Anda. Tekan kirim di WhatsApp untuk melanjutkan, dan tim akan membalas pada jam layanan.",
+  boxTitle: "Ringkasan konsultasi Anda",
+  boxBody:
+    "Ringkasan ini belum terkirim ke mana pun. Salin lalu simpan, dan kirimkan ke kanal resmi begitu nomor atau email resmi tersedia.",
+  boxLabel: "Ringkasan yang bisa disalin",
+  copying: "Menyalin ringkasan...",
+  copy: "Salin ringkasan",
+  copied: "Ringkasan tersalin.",
+  copyError:
+    "Penyalinan otomatis diblokir oleh peramban. Pilih teks pada kotak di atas, lalu salin secara manual.",
+  successPrefix: "Berhasil. ",
+  failurePrefix: "Gagal. ",
+};
 
-const programOptions = ["Belum tahu", "Reguler", "Plus", "Private"];
+const enCopy: typeof idCopy = {
+  bulanOptions: [
+    { value: "secepatnya", label: "As soon as possible" },
+    { value: "1-3", label: "In 1 to 3 months" },
+    { value: "3-6", label: "In 3 to 6 months" },
+    { value: "6-12", label: "In 6 to 12 months" },
+    { value: "belum", label: "Not decided yet" },
+  ],
+  programOptions: ["Not sure yet", "Regular", "Plus", "Private"],
+  kebutuhanOptions: [
+    "Elderly pilgrims",
+    "Travelling with children",
+    "Mobility needs",
+    "A group or community",
+    "Separate rooms",
+  ],
+  errors: {
+    nama: "Enter the full name as it appears on your documents, at least 2 characters.",
+    whatsapp: "Enter an active WhatsApp number, 9 to 15 digits.",
+    jumlahJamaah: "Enter the number of pilgrims as a figure between 1 and 200.",
+    jenis: "Choose the trip type.",
+    bulan: "Choose the approximate departure month.",
+    program: "Choose a programme preference.",
+  },
+  summaryHeading: "Consultation summary",
+  summary: {
+    name: "Name",
+    whatsapp: "WhatsApp number",
+    jumlah: "Number of pilgrims",
+    jenis: "Trip type",
+    bulan: "Approximate departure",
+    program: "Programme preference",
+    kebutuhan: "Special needs",
+    pesan: "Notes",
+    none: "None",
+  },
+  prefilled: (paket: string) => `I would like to ask about the ${paket} programme.`,
+  field: {
+    nama: "Full name",
+    whatsapp: "WhatsApp number",
+    jumlah: "Number of pilgrims",
+    jumlahHint: "Including yourself.",
+    jenis: "Trip type",
+    jenisPlaceholder: "Choose the trip type",
+    bulan: "Approximate departure month",
+    bulanPlaceholder: "Choose an approximate time",
+    program: "Programme preference",
+    programPlaceholder: "Choose a preference",
+    kebutuhan: "Special needs",
+    optional: "(optional)",
+    pesan: "Additional notes",
+    pesanHint: "For example your home city, room needs, or a question about the facilities.",
+  },
+  channelTitle: "The official WhatsApp number is not set yet.",
+  channelBody:
+    "The send button below opens WhatsApp with the message already written. While the official number is missing from the site configuration the button cannot be used, and you can put together the same summary to send through the official channels on the contact page.",
+  send: "Send to WhatsApp",
+  noDocsNote: "We never ask for documents or payment before a written offer exists.",
+  compose: "Compose a summary to copy",
+  errorNotice: "Some answers need fixing. Check the note under the field concerned.",
+  handoffTitle: "WhatsApp opened in a new tab.",
+  handoffBody:
+    "The message already contains your consultation summary. Press send in WhatsApp to continue, and the team will reply during service hours.",
+  boxTitle: "Your consultation summary",
+  boxBody:
+    "This summary has not been sent anywhere. Copy and keep it, then send it through the official channels once an official number or email address is available.",
+  boxLabel: "Summary you can copy",
+  copying: "Copying the summary...",
+  copy: "Copy the summary",
+  copied: "Summary copied.",
+  copyError:
+    "Automatic copying was blocked by the browser. Select the text in the box above and copy it by hand.",
+  successPrefix: "Done. ",
+  failurePrefix: "Failed. ",
+};
 
-const kebutuhanOptions = [
-  "Jamaah lansia",
-  "Membawa anak",
-  "Kebutuhan mobilitas",
-  "Rombongan atau kelompok",
-  "Kamar terpisah",
-];
+const copy: Localized<typeof idCopy> = { id: idCopy, en: enCopy };
 
 const fieldOrder: Array<keyof FormValues> = [
   "nama",
@@ -47,53 +187,60 @@ const fieldOrder: Array<keyof FormValues> = [
   "program",
 ];
 
-export function validateConsultation(values: FormValues): Errors {
+const jenisLabels: Localized<Record<string, string>> = {
+  id: { umrah: "Umrah", haji: "Haji" },
+  en: { umrah: "Umrah", haji: "Hajj" },
+};
+
+export function validateConsultation(values: FormValues, lang: Lang): Errors {
   const errors: Errors = {};
+  const messages = copy[lang].errors;
 
   if (values.nama.trim().length < 2) {
-    errors.nama = "Isi nama lengkap sesuai dokumen, minimal 2 karakter.";
+    errors.nama = messages.nama;
   }
 
   const digits = values.whatsapp.replace(/\D/g, "");
   if (digits.length < 9 || digits.length > 15) {
-    errors.whatsapp = "Isi nomor WhatsApp yang aktif, 9 sampai 15 angka.";
+    errors.whatsapp = messages.whatsapp;
   }
 
   const jumlah = Number(values.jumlahJamaah);
   if (!Number.isInteger(jumlah) || jumlah < 1 || jumlah > 200) {
-    errors.jumlahJamaah = "Isi jumlah jamaah dengan angka antara 1 dan 200.";
+    errors.jumlahJamaah = messages.jumlahJamaah;
   }
 
-  if (!values.jenis) errors.jenis = "Pilih jenis perjalanan.";
-  if (!values.bulan) errors.bulan = "Pilih perkiraan bulan keberangkatan.";
-  if (!values.program) errors.program = "Pilih preferensi program.";
+  if (!values.jenis) errors.jenis = messages.jenis;
+  if (!values.bulan) errors.bulan = messages.bulan;
+  if (!values.program) errors.program = messages.program;
 
   return errors;
 }
-
-const jenisLabels: Record<string, string> = { umrah: "Umrah", haji: "Haji" };
 
 /**
  * Written for a WhatsApp chat rather than as a data dump. WhatsApp renders a
  * pair of asterisks as bold, so the heading stands out and every answer keeps
  * its own line, which is what the team reads on a phone.
  */
-export function buildConsultationSummary(values: FormValues): string {
+export function buildConsultationSummary(values: FormValues, lang: Lang): string {
+  const c = copy[lang];
   const bulanLabel =
-    bulanOptions.find((option) => option.value === values.bulan)?.label ?? values.bulan;
+    c.bulanOptions.find((option) => option.value === values.bulan)?.label ?? values.bulan;
 
   return [
-    site.whatsappMessage,
+    site.whatsappMessage[lang],
     "",
-    "*Ringkasan konsultasi*",
-    `Nama: ${values.nama.trim()}`,
-    `Nomor WhatsApp: ${values.whatsapp.trim()}`,
-    `Jumlah jamaah: ${values.jumlahJamaah}`,
-    `Jenis perjalanan: ${jenisLabels[values.jenis] ?? values.jenis}`,
-    `Perkiraan keberangkatan: ${bulanLabel}`,
-    `Preferensi program: ${values.program}`,
-    `Kebutuhan khusus: ${values.kebutuhan.length > 0 ? values.kebutuhan.join(", ") : "Tidak ada"}`,
-    `Catatan: ${values.pesan.trim() || "Tidak ada"}`,
+    `*${c.summaryHeading}*`,
+    `${c.summary.name}: ${values.nama.trim()}`,
+    `${c.summary.whatsapp}: ${values.whatsapp.trim()}`,
+    `${c.summary.jumlah}: ${values.jumlahJamaah}`,
+    `${c.summary.jenis}: ${jenisLabels[lang][values.jenis] ?? values.jenis}`,
+    `${c.summary.bulan}: ${bulanLabel}`,
+    `${c.summary.program}: ${values.program}`,
+    `${c.summary.kebutuhan}: ${
+      values.kebutuhan.length > 0 ? values.kebutuhan.join(", ") : c.summary.none
+    }`,
+    `${c.summary.pesan}: ${values.pesan.trim() || c.summary.none}`,
   ].join("\n");
 }
 
@@ -104,6 +251,8 @@ export function buildConsultationSummary(values: FormValues): string {
  * says plainly that it has not been sent anywhere.
  */
 export function ConsultationForm() {
+  const c = useCopy(copy);
+  const lang = useLang();
   const [params] = useSearchParams();
   const prefilledPackage = params.get("paket");
   const [values, setValues] = useState<FormValues>({
@@ -114,14 +263,16 @@ export function ConsultationForm() {
     bulan: "",
     program: "",
     kebutuhan: [],
-    pesan: prefilledPackage ? `Saya ingin menanyakan program ${prefilledPackage}.` : "",
+    pesan: prefilledPackage
+      ? copy[lang].prefilled(prefilledPackage)
+      : "",
   });
   const [errors, setErrors] = useState<Errors>({});
   const [status, setStatus] = useState<Status>("idle");
   const formRef = useRef<HTMLFormElement | null>(null);
 
-  const summary = useMemo(() => buildConsultationSummary(values), [values]);
-  const directHref = whatsappHref(summary);
+  const summary = useMemo(() => buildConsultationSummary(values, lang), [values, lang]);
+  const directHref = whatsappHref(lang, summary);
   const channelMissing = isPlaceholder(site.whatsappNumber);
 
   function setField<K extends keyof FormValues>(key: K, value: FormValues[K]) {
@@ -140,7 +291,7 @@ export function ConsultationForm() {
 
   /** Blocks every handoff until the answers are complete, and says which one is missing. */
   function answersAreComplete(): boolean {
-    const nextErrors = validateConsultation(values);
+    const nextErrors = validateConsultation(values, lang);
     setErrors(nextErrors);
 
     const firstError = fieldOrder.find((field) => nextErrors[field]);
@@ -188,14 +339,8 @@ export function ConsultationForm() {
     <form ref={formRef} onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
       {channelMissing ? (
         <div id="konsul-kanal" className="rounded-lg border border-emerald-200 bg-cream p-5">
-          <p className="text-body font-semibold text-emerald-900">
-            Nomor WhatsApp resmi belum diatur.
-          </p>
-          <p className="mt-2 max-w-prose text-body-sm text-charcoal-soft">
-            Tombol kirim di bawah ini membuka WhatsApp dengan pesan yang sudah terisi. Selama nomor
-            resmi belum diisi pada konfigurasi situs, tombolnya belum bisa dipakai dan Anda bisa
-            menyusun ringkasan yang sama untuk dikirim lewat kanal resmi di halaman kontak.
-          </p>
+          <p className="text-body font-semibold text-emerald-900">{c.channelTitle}</p>
+          <p className="mt-2 max-w-prose text-body-sm text-charcoal-soft">{c.channelBody}</p>
         </div>
       ) : null}
 
@@ -203,7 +348,7 @@ export function ConsultationForm() {
         <Input
           id="konsul-nama"
           name="nama"
-          label="Nama lengkap"
+          label={c.field.nama}
           autoComplete="name"
           value={values.nama}
           error={errors.nama}
@@ -212,7 +357,7 @@ export function ConsultationForm() {
         <Input
           id="konsul-wa"
           name="whatsapp"
-          label="Nomor WhatsApp"
+          label={c.field.whatsapp}
           inputMode="tel"
           autoComplete="tel"
           placeholder="0812xxxxxxx"
@@ -223,36 +368,36 @@ export function ConsultationForm() {
         <Input
           id="konsul-jumlah"
           name="jumlahJamaah"
-          label="Jumlah jamaah"
+          label={c.field.jumlah}
           inputMode="numeric"
           placeholder="2"
           value={values.jumlahJamaah}
           error={errors.jumlahJamaah}
-          hint="Termasuk Anda sendiri."
+          hint={c.field.jumlahHint}
           onChange={(event) => setField("jumlahJamaah", event.target.value)}
         />
         <Select
           id="konsul-jenis"
           name="jenis"
-          label="Jenis perjalanan"
+          label={c.field.jenis}
           value={values.jenis}
           error={errors.jenis}
           onChange={(event) => setField("jenis", event.target.value)}
         >
-          <option value="">Pilih jenis perjalanan</option>
+          <option value="">{c.field.jenisPlaceholder}</option>
           <option value="umrah">Umrah</option>
-          <option value="haji">Haji</option>
+          <option value="haji">Hajj</option>
         </Select>
         <Select
           id="konsul-bulan"
           name="bulan"
-          label="Perkiraan bulan keberangkatan"
+          label={c.field.bulan}
           value={values.bulan}
           error={errors.bulan}
           onChange={(event) => setField("bulan", event.target.value)}
         >
-          <option value="">Pilih perkiraan waktu</option>
-          {bulanOptions.map((option) => (
+          <option value="">{c.field.bulanPlaceholder}</option>
+          {c.bulanOptions.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
@@ -261,13 +406,13 @@ export function ConsultationForm() {
         <Select
           id="konsul-program"
           name="program"
-          label="Preferensi program"
+          label={c.field.program}
           value={values.program}
           error={errors.program}
           onChange={(event) => setField("program", event.target.value)}
         >
-          <option value="">Pilih preferensi</option>
-          {programOptions.map((option) => (
+          <option value="">{c.field.programPlaceholder}</option>
+          {c.programOptions.map((option) => (
             <option key={option} value={option}>
               {option}
             </option>
@@ -277,11 +422,11 @@ export function ConsultationForm() {
 
       <fieldset className="flex flex-col gap-3">
         <legend className="text-body-sm font-semibold text-charcoal">
-          Kebutuhan khusus
-          <span className="ml-1 font-normal text-charcoal-muted">(opsional)</span>
+          {c.field.kebutuhan}
+          <span className="ml-1 font-normal text-charcoal-muted">{c.field.optional}</span>
         </legend>
         <div className="flex flex-wrap gap-2">
-          {kebutuhanOptions.map((option) => {
+          {c.kebutuhanOptions.map((option) => {
             const checked = values.kebutuhan.includes(option);
             return (
               <label key={option} className="relative">
@@ -305,11 +450,11 @@ export function ConsultationForm() {
       <Textarea
         id="konsul-pesan"
         name="pesan"
-        label="Catatan tambahan"
+        label={c.field.pesan}
         optional
         value={values.pesan}
         onChange={(event) => setField("pesan", event.target.value)}
-        hint="Misalnya kota asal, kebutuhan kamar, atau pertanyaan tentang fasilitas."
+        hint={c.field.pesanHint}
       />
 
       <div className="flex flex-col gap-4">
@@ -325,56 +470,55 @@ export function ConsultationForm() {
               onClick={handleHandoff}
             >
               <WhatsAppGlyph />
-              Kirim ke WhatsApp
+              {c.send}
             </ButtonAnchor>
           ) : (
             <Button type="button" size="lg" disabled aria-describedby="konsul-kanal">
               <WhatsAppGlyph />
-              Kirim ke WhatsApp
+              {c.send}
             </Button>
           )}
-          <p className="text-body-sm text-charcoal-muted">
-            Kami tidak meminta dokumen atau pembayaran apa pun sebelum ada penawaran tertulis.
-          </p>
+          <p className="text-body-sm text-charcoal-muted">{c.noDocsNote}</p>
         </div>
 
         {/* Kept while the official number is missing, because handing the same
             summary over for copying is still better than no path at all. */}
         {channelMissing ? (
           <Button type="submit" variant="outline" size="lg" className="self-start">
-            Susun ringkasan untuk disalin
+            {c.compose}
           </Button>
         ) : null}
       </div>
 
       {Object.keys(errors).length > 0 ? (
         <p role="alert" className="text-body-sm font-semibold text-status-full">
-          Ada isian yang perlu diperbaiki. Periksa tanda di bawah kolom yang bersangkutan.
+          {c.errorNotice}
         </p>
       ) : null}
 
       {status === "handoff" ? (
         <StatusBlock
           tone="success"
-          title="WhatsApp dibuka di tab baru."
-          body="Pesan sudah terisi ringkasan konsultasi Anda. Tekan kirim di WhatsApp untuk melanjutkan, dan tim akan membalas pada jam layanan."
+          prefix={c.successPrefix}
+          title={c.handoffTitle}
+          body={c.handoffBody}
         />
       ) : null}
 
-      {status === "awaitingChannel" || status === "copying" || status === "copied" || status === "copyError" ? (
+      {status === "awaitingChannel" ||
+      status === "copying" ||
+      status === "copied" ||
+      status === "copyError" ? (
         <div className="flex flex-col gap-4 rounded-lg border border-emerald-200 bg-cream p-5">
           <div>
-            <p className="text-body font-semibold text-emerald-900">Ringkasan konsultasi Anda</p>
-            <p className="mt-2 max-w-prose text-body-sm text-charcoal-soft">
-              Ringkasan ini belum terkirim ke mana pun. Salin lalu simpan, dan kirimkan ke kanal
-              resmi begitu nomor atau email resmi tersedia.
-            </p>
+            <p className="text-body font-semibold text-emerald-900">{c.boxTitle}</p>
+            <p className="mt-2 max-w-prose text-body-sm text-charcoal-soft">{c.boxBody}</p>
           </div>
           {/* Monospace only here, and only because this block is a data list of
               label and value pairs the reader has to copy accurately. */}
           <Textarea
             id="konsul-ringkasan"
-            label="Ringkasan yang bisa disalin"
+            label={c.boxLabel}
             readOnly
             value={summary}
             rows={12}
@@ -387,16 +531,15 @@ export function ConsultationForm() {
               onClick={handleCopy}
               disabled={status === "copying"}
             >
-              {status === "copying" ? "Menyalin ringkasan..." : "Salin ringkasan"}
+              {status === "copying" ? c.copying : c.copy}
             </Button>
             {status === "copied" ? (
-              <p className="text-body-sm font-semibold text-status-available">Ringkasan tersalin.</p>
+              <p className="text-body-sm font-semibold text-status-available">{c.copied}</p>
             ) : null}
           </div>
           {status === "copyError" ? (
             <p role="alert" className="text-body-sm font-semibold text-status-full">
-              Penyalinan otomatis diblokir oleh peramban. Pilih teks pada kotak di atas, lalu salin
-              secara manual.
+              {c.copyError}
             </p>
           ) : null}
         </div>
@@ -407,10 +550,12 @@ export function ConsultationForm() {
 
 function StatusBlock({
   tone,
+  prefix,
   title,
   body,
 }: {
   tone: "success" | "error";
+  prefix: string;
   title: string;
   body: string;
 }) {
@@ -427,7 +572,7 @@ function StatusBlock({
           isSuccess ? "text-status-available" : "text-status-full"
         }`}
       >
-        {isSuccess ? "Berhasil. " : "Gagal. "}
+        {prefix}
         {title}
       </p>
       <p className="mt-2 max-w-prose text-body-sm text-charcoal-soft">{body}</p>

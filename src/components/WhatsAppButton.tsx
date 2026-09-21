@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { site, whatsappHref } from "../config/site";
-import { useCopy } from "../i18n/LanguageProvider";
+import { useCopy, useLang } from "../i18n/LanguageProvider";
 import type { Localized } from "../i18n/types";
 
 const idCopy = {
@@ -28,7 +28,7 @@ const copy: Localized<typeof idCopy> = {
 };
 
 export function WhatsAppButton() {
-  const href = whatsappHref();
+  const href = whatsappHref(useLang());
   const { pathname } = useLocation();
   const text = useCopy(copy);
 

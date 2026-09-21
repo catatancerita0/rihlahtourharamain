@@ -2,19 +2,62 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { PackageFilter } from "../components/PackageFilter";
 import { PackageResults } from "../components/PackageList";
+import { PageHeader } from "../components/layout/PageHeader";
 import { Button } from "../components/ui/Button";
 import { Dialog } from "../components/ui/Dialog";
-import { PageHeader } from "../components/layout/PageHeader";
 import { SectionHeading } from "../components/ui/SectionHeading";
-import type { PackageCategory } from "../content/types";
 import { packages } from "../content/packages";
+import type { PackageCategory } from "../content/types";
 import { usePackageFilter } from "../hooks/usePackageFilter";
+import { useCopy } from "../i18n/LanguageProvider";
+import type { Localized } from "../i18n/types";
 
 interface PackageListPageProps {
   category: PackageCategory;
 }
 
+const idCopy = {
+  umrahEyebrow: "Paket Umrah",
+  hajiEyebrow: "Paket Haji",
+  umrahTitle: "Pilih program Umrah yang sesuai",
+  hajiTitle: "Program Haji",
+  umrahIntro:
+    "Tiga program dengan cara kerja berbeda. Harga dan tanggal ditampilkan setelah ditetapkan, dan yang belum ada ditandai apa adanya.",
+  hajiIntro:
+    "Program Haji mengikuti ketentuan resmi dan kuota. Halaman ini hanya menampilkan data yang sudah terverifikasi.",
+  unsure: "Belum yakin harus mulai dari mana?",
+  talkPlan: "Konsultasikan rencana Anda",
+  filterEyebrow: "Filter",
+  filterTitle: "Saring program",
+  openFilter: "Buka filter program",
+  showing: (shown: number, total: number) => `Menampilkan ${shown} dari ${total} program`,
+  sheetDescription: "Pilih filter lalu tutup panel ini untuk melihat hasilnya.",
+  showCount: (count: number) => `Tampilkan ${count} program`,
+};
+
+const enCopy: typeof idCopy = {
+  umrahEyebrow: "Umrah packages",
+  hajiEyebrow: "Hajj packages",
+  umrahTitle: "Choose the Umrah programme that fits",
+  hajiTitle: "Hajj programme",
+  umrahIntro:
+    "Three programmes that work in different ways. Prices and dates appear once they are set, and anything still missing is labelled as missing.",
+  hajiIntro:
+    "The Hajj programme follows official rules and quota. This page only shows data that has been verified.",
+  unsure: "Not sure where to start?",
+  talkPlan: "Talk through your plan",
+  filterEyebrow: "Filter",
+  filterTitle: "Narrow the list",
+  openFilter: "Open programme filters",
+  showing: (shown: number, total: number) => `Showing ${shown} of ${total} programmes`,
+  sheetDescription: "Choose your filters, then close this panel to see the results.",
+  showCount: (count: number) => `Show ${count} programmes`,
+};
+
+const copy: Localized<typeof idCopy> = { id: idCopy, en: enCopy };
+
 export function PackageListPage({ category }: PackageListPageProps) {
+  const c = useCopy(copy);
   const items = packages.filter((item) => item.category === category);
   const filter = usePackageFilter(items);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -22,18 +65,14 @@ export function PackageListPage({ category }: PackageListPageProps) {
   return (
     <>
       <PageHeader
-        eyebrow={category === "umrah" ? "Paket Umrah" : "Paket Haji"}
-        title={category === "umrah" ? "Pilih program Umrah yang sesuai" : "Program Haji"}
-        intro={
-          category === "umrah"
-            ? "Tiga program dengan cara kerja berbeda. Harga dan tanggal ditampilkan setelah ditetapkan, dan yang belum ada ditandai apa adanya."
-            : "Program Haji mengikuti ketentuan resmi dan kuota. Halaman ini hanya menampilkan data yang sudah terverifikasi."
-        }
+        eyebrow={category === "umrah" ? c.umrahEyebrow : c.hajiEyebrow}
+        title={category === "umrah" ? c.umrahTitle : c.hajiTitle}
+        intro={category === "umrah" ? c.umrahIntro : c.hajiIntro}
       >
         <p className="text-body-sm text-emerald-100">
-          Belum yakin harus mulai dari mana?{" "}
+          {c.unsure}{" "}
           <Link to="/konsultasi" className="font-semibold text-shell underline underline-offset-4">
-            Konsultasikan rencana Anda
+            {c.talkPlan}
           </Link>
           .
         </p>
@@ -44,7 +83,7 @@ export function PackageListPage({ category }: PackageListPageProps) {
           <div className="grid gap-10 lg:grid-cols-[19rem_1fr] lg:gap-12">
             <div className="lg:sticky lg:top-28 lg:self-start">
               <div className="hidden lg:block">
-                <SectionHeading as="h2" eyebrow="Filter" title="Saring program" />
+                <SectionHeading as="h2" eyebrow={c.filterEyebrow} title={c.filterTitle} />
                 <div className="mt-6 rounded-lg border border-emerald-100 bg-cream p-5">
                   <PackageFilter
                     idPrefix="list"
@@ -66,13 +105,13 @@ export function PackageListPage({ category }: PackageListPageProps) {
                 className="w-full lg:hidden"
                 onClick={() => setSheetOpen(true)}
               >
-                Buka filter program
+                {c.openFilter}
               </Button>
             </div>
 
             <div>
               <p className="text-body-sm text-charcoal-muted">
-                Menampilkan {filter.results.length} dari {items.length} program
+                {c.showing(filter.results.length, items.length)}
               </p>
               <div className="mt-5">
                 <PackageResults items={filter.results} active={filter.active} />
@@ -85,8 +124,8 @@ export function PackageListPage({ category }: PackageListPageProps) {
       <Dialog
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
-        title="Saring program"
-        description="Pilih filter lalu tutup panel ini untuk melihat hasilnya."
+        title={c.filterTitle}
+        description={c.sheetDescription}
       >
         <PackageFilter
           idPrefix="sheet"
@@ -104,7 +143,7 @@ export function PackageListPage({ category }: PackageListPageProps) {
           className="mt-6 w-full"
           onClick={() => setSheetOpen(false)}
         >
-          Tampilkan {filter.results.length} program
+          {c.showCount(filter.results.length)}
         </Button>
       </Dialog>
     </>

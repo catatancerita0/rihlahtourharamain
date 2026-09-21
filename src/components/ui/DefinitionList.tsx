@@ -1,4 +1,6 @@
 import { isPlaceholder } from "../../config/site";
+import { useCopy } from "../../i18n/LanguageProvider";
+import type { Localized } from "../../i18n/types";
 
 export interface DefinitionRow {
   label: string;
@@ -13,7 +15,20 @@ interface DefinitionListProps {
   className?: string;
 }
 
+const idCopy = {
+  pendingDefault: "Belum ditetapkan",
+  missingTitle: "Nilai ini belum diisi oleh penyelenggara",
+};
+
+const enCopy: typeof idCopy = {
+  pendingDefault: "Not set yet",
+  missingTitle: "This value has not been provided by the organiser",
+};
+
+const copy: Localized<typeof idCopy> = { id: idCopy, en: enCopy };
+
 export function DefinitionList({ rows, onDark = false, className = "" }: DefinitionListProps) {
+  const c = useCopy(copy);
   const labelClass = onDark ? "text-emerald-300" : "text-charcoal-muted";
   const valueClass = onDark ? "text-shell" : "text-charcoal";
 
@@ -31,7 +46,7 @@ export function DefinitionList({ rows, onDark = false, className = "" }: Definit
             ) : (
               <span
                 className={`inline-flex items-center gap-2 text-body-sm ${labelClass}`}
-                title="Nilai ini belum diisi oleh penyelenggara"
+                title={c.missingTitle}
               >
                 <span
                   aria-hidden="true"
@@ -39,7 +54,7 @@ export function DefinitionList({ rows, onDark = false, className = "" }: Definit
                     onDark ? "border-emerald-300" : "border-charcoal-muted"
                   }`}
                 />
-                {row.pending ?? "Belum ditetapkan"}
+                {row.pending ?? c.pendingDefault}
               </span>
             )}
           </dd>

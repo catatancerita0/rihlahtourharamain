@@ -1,5 +1,6 @@
 import type { Availability } from "../../content/types";
-import { availabilityMeta } from "../../lib/format";
+import { useLang } from "../../i18n/LanguageProvider";
+import { availabilityMetaFor } from "../../lib/format";
 
 interface StatusBadgeProps {
   status: Availability;
@@ -53,7 +54,7 @@ function Marker({ shape }: { shape: "solid" | "half" | "slash" | "outline" }) {
 }
 
 export function StatusBadge({ status, onDark = false, showDescription = false }: StatusBadgeProps) {
-  const meta = availabilityMeta[status];
+  const meta = availabilityMetaFor(status, useLang());
   const color = onDark ? meta.darkClassName : meta.className;
 
   return (

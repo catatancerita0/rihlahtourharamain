@@ -25,3 +25,26 @@ export function pick<T>(value: Localized<T>, lang: Lang): T {
 export function isLang(value: unknown): value is Lang {
   return typeof value === "string" && (LANGS as readonly string[]).includes(value);
 }
+
+/**
+ * Builders used by the content files and by colocated page copy. Writing the
+ * two languages side by side keeps a translation from drifting away from the
+ * text it belongs to. `both()` marks the proper nouns, dates and codes that
+ * genuinely read the same in both languages, so keeping one wording is a
+ * decision on the record rather than a missing translation.
+ */
+export function t(id: string, en: string): Localized<string> {
+  return { id, en };
+}
+
+export function both(value: string): Localized<string> {
+  return { id: value, en: value };
+}
+
+export function tList(id: string[], en: string[]): Localized<string[]> {
+  return { id, en };
+}
+
+export function bothList(...values: string[]): Localized<string[]> {
+  return { id: values, en: values };
+}

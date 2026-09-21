@@ -1,4 +1,5 @@
 import type { FaqItem } from "../content/types";
+import { usePick } from "../i18n/LanguageProvider";
 
 interface FAQAccordionProps {
   items: FaqItem[];
@@ -10,12 +11,14 @@ interface FAQAccordionProps {
  * correctly by screen readers, and still opens if the bundle fails to load.
  */
 export function FAQAccordion({ items, idPrefix }: FAQAccordionProps) {
+  const L = usePick();
+
   return (
     <div className="divide-y divide-emerald-100 border-y border-emerald-100">
       {items.map((item) => (
         <details key={item.id} className="group py-4" id={`${idPrefix}-${item.id}`}>
           <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-body-lg font-semibold text-emerald-900 marker:hidden">
-            <span>{item.question}</span>
+            <span>{L(item.question)}</span>
             <span
               aria-hidden="true"
               className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-sm border border-emerald-400 text-emerald-800"
@@ -31,7 +34,7 @@ export function FAQAccordion({ items, idPrefix }: FAQAccordionProps) {
               </svg>
             </span>
           </summary>
-          <p className="mt-3 max-w-prose text-body text-charcoal-soft">{item.answer}</p>
+          <p className="mt-3 max-w-prose text-body text-charcoal-soft">{L(item.answer)}</p>
         </details>
       ))}
     </div>

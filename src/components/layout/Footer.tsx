@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { contactHref, isPlaceholder, site, whatsappHref } from "../../config/site";
-import { useCopy } from "../../i18n/LanguageProvider";
+import { useCopy, useLang } from "../../i18n/LanguageProvider";
 import { chrome, type ChromeCopy } from "../../i18n/strings";
 import { GeometricMotif } from "../ui/GeometricMotif";
 
@@ -26,7 +26,7 @@ export function Footer() {
   const copy = useCopy(chrome);
   const tagline = useCopy(site.tagline);
 
-  const wa = whatsappHref();
+  const wa = whatsappHref(useLang());
   const mail = contactHref(site.email, "mailto");
   const socialEntries = Object.entries(site.social).filter(
     (entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0,

@@ -4,30 +4,90 @@ import { EmptyState } from "../components/ui/EmptyState";
 import { PendingPanel } from "../components/ui/PendingPanel";
 import { SectionHeading } from "../components/ui/SectionHeading";
 import { hajiPendingFields, hajiVerificationSteps } from "../content/site-content";
+import { useCopy, usePick } from "../i18n/LanguageProvider";
+import type { Localized } from "../i18n/types";
 
-const questionsToAsk = [
-  "Berapa lama estimasi masa tunggu, dan apa dasar angka itu?",
-  "Fasilitas apa saja yang termasuk, dan apa yang dibayar terpisah?",
-  "Bagaimana pembagian kamar ditentukan, terutama untuk jamaah lansia?",
-  "Siapa pembimbing yang mendampingi, dan berapa jumlah jamaah per pembimbing?",
-  "Apa isi perjanjian tertulis, termasuk ketentuan pembatalan dan pengembalian dana?",
-];
+const idCopy = {
+  eyebrow: "Program Haji",
+  title: "Program Haji, dijelaskan setelah datanya terverifikasi",
+  intro:
+    "Perjalanan Haji terikat ketentuan resmi, kuota, dan izin penyelenggara. Karena itu halaman ini tidak menampilkan angka atau klaim administratif sebelum dokumennya benar-benar ada.",
+  askHajj: "Konsultasikan Rencana Haji",
+  seeLicensing: "Lihat halaman legalitas",
+  statusEyebrow: "Status",
+  statusTitle: "Yang belum tersedia di halaman ini",
+  statusIntro:
+    "Empat hal di bawah ini hanya boleh ditulis dari sumber resmi. Selama belum ada, halaman ini menjelaskan cara Anda memeriksanya sendiri.",
+  pendingLabel: "Data program Haji",
+  pendingDescription:
+    "Tim belum memberikan dokumen resmi untuk program Haji, jadi tidak ada informasi program, izin, penyelenggara, maupun ketentuan yang bisa kami cantumkan di sini.",
+  verifyEyebrow: "Panduan verifikasi",
+  verifyTitle: "Cara memeriksa penyelenggara Haji",
+  verifyIntro:
+    "Langkah ini berguna untuk penyelenggara mana pun, termasuk ketika Anda membandingkan beberapa pilihan.",
+  decideEyebrow: "Sebelum memutuskan",
+  decideTitle: "Pertanyaan yang layak dijawab tertulis",
+  scheduleTitle: "Jadwal Haji belum dipublikasikan.",
+  scheduleBody:
+    "Kuota dan jadwal Haji ditetapkan oleh pihak berwenang, jadi kami tidak menampilkan perkiraan tanggal. Sampaikan minat Anda lewat konsultasi agar tim menghubungi ketika informasi resminya tersedia.",
+  seeSchedule: "Lihat jadwal yang sudah ada",
+  questions: [
+    "Berapa lama estimasi masa tunggu, dan apa dasar angka itu?",
+    "Fasilitas apa saja yang termasuk, dan apa yang dibayar terpisah?",
+    "Bagaimana pembagian kamar ditentukan, terutama untuk jamaah lansia?",
+    "Siapa pembimbing yang mendampingi, dan berapa jumlah jamaah per pembimbing?",
+    "Apa isi perjanjian tertulis, termasuk ketentuan pembatalan dan pengembalian dana?",
+  ],
+};
+
+const enCopy: typeof idCopy = {
+  eyebrow: "Hajj programme",
+  title: "The Hajj programme, explained once the data is verified",
+  intro:
+    "Hajj travel is bound by official rules, quota, and the organiser's licence. That is why this page shows no figures or administrative claims before the documents genuinely exist.",
+  askHajj: "Ask about a Hajj plan",
+  seeLicensing: "See the licensing page",
+  statusEyebrow: "Status",
+  statusTitle: "What this page does not have yet",
+  statusIntro:
+    "The four items below may only be written from official sources. Until they exist, this page explains how you can check them yourself.",
+  pendingLabel: "Hajj programme data",
+  pendingDescription:
+    "The team has not provided official documents for the Hajj programme, so there is no programme information, licence, organiser, or set of terms we can publish here.",
+  verifyEyebrow: "Verification guide",
+  verifyTitle: "How to check a Hajj organiser",
+  verifyIntro:
+    "These steps work for any organiser, including when you are comparing several options.",
+  decideEyebrow: "Before deciding",
+  decideTitle: "Questions worth answering in writing",
+  scheduleTitle: "The Hajj schedule has not been published.",
+  scheduleBody:
+    "Hajj quota and schedules are set by the authorities, so we do not publish estimated dates. Tell us you are interested through a consultation and the team will make contact when official information is available.",
+  seeSchedule: "See the departures that exist",
+  questions: [
+    "How long is the estimated waiting period, and what is that figure based on?",
+    "Which facilities are included, and what is paid separately?",
+    "How are rooms allocated, especially for elderly pilgrims?",
+    "Who is the guide, and how many pilgrims does each guide cover?",
+    "What does the written agreement contain, including cancellation and refund terms?",
+  ],
+};
+
+const copy: Localized<typeof idCopy> = { id: idCopy, en: enCopy };
 
 export function HajiPage() {
+  const c = useCopy(copy);
+  const L = usePick();
+
   return (
     <>
-      <PageHeader
-        eyebrow="Program Haji"
-        title="Program Haji, dijelaskan setelah datanya terverifikasi"
-        intro="Perjalanan Haji terikat ketentuan resmi, kuota, dan izin penyelenggara. Karena itu halaman ini tidak menampilkan angka atau klaim administratif sebelum dokumennya benar-benar ada."
-        motif
-      >
+      <PageHeader eyebrow={c.eyebrow} title={c.title} intro={c.intro} motif>
         <div className="flex flex-wrap gap-3">
           <ButtonLink to="/konsultasi" variant="accent" size="lg">
-            Konsultasikan Rencana Haji
+            {c.askHajj}
           </ButtonLink>
           <ButtonLink to="/legalitas" variant="outline" size="lg" onDark>
-            Lihat halaman legalitas
+            {c.seeLicensing}
           </ButtonLink>
         </div>
       </PageHeader>
@@ -35,15 +95,15 @@ export function HajiPage() {
       <section className="section bg-shell">
         <div className="shell-container">
           <SectionHeading
-            eyebrow="Status"
-            title="Yang belum tersedia di halaman ini"
-            intro="Empat hal di bawah ini hanya boleh ditulis dari sumber resmi. Selama belum ada, halaman ini menjelaskan cara Anda memeriksanya sendiri."
+            eyebrow={c.statusEyebrow}
+            title={c.statusTitle}
+            intro={c.statusIntro}
           />
           <div className="mt-8">
             <PendingPanel
-              label="Data program Haji"
-              description="Tim belum memberikan dokumen resmi untuk program Haji, jadi tidak ada informasi program, izin, penyelenggara, maupun ketentuan yang bisa kami cantumkan di sini."
-              willShow={hajiPendingFields}
+              label={c.pendingLabel}
+              description={c.pendingDescription}
+              willShow={L(hajiPendingFields)}
             />
           </div>
         </div>
@@ -53,12 +113,12 @@ export function HajiPage() {
         <div className="shell-container">
           <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:gap-16">
             <SectionHeading
-              eyebrow="Panduan verifikasi"
-              title="Cara memeriksa penyelenggara Haji"
-              intro="Langkah ini berguna untuk penyelenggara mana pun, termasuk ketika Anda membandingkan beberapa pilihan."
+              eyebrow={c.verifyEyebrow}
+              title={c.verifyTitle}
+              intro={c.verifyIntro}
             />
             <ol className="flex flex-col gap-5">
-              {hajiVerificationSteps.map((step, index) => (
+              {L(hajiVerificationSteps).map((step, index) => (
                 <li key={step} className="flex gap-4 border-t border-emerald-200 pt-5">
                   <span className="tabular font-display text-2xl text-emerald-800">
                     {String(index + 1).padStart(2, "0")}
@@ -74,12 +134,9 @@ export function HajiPage() {
       <section className="section bg-shell">
         <div className="shell-container">
           <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:gap-16">
-            <SectionHeading
-              eyebrow="Sebelum memutuskan"
-              title="Pertanyaan yang layak dijawab tertulis"
-            />
+            <SectionHeading eyebrow={c.decideEyebrow} title={c.decideTitle} />
             <ul className="flex flex-col gap-4">
-              {questionsToAsk.map((question) => (
+              {c.questions.map((question) => (
                 <li
                   key={question}
                   className="flex gap-3 border-b border-emerald-100 pb-4 text-body text-charcoal-soft"
@@ -97,15 +154,15 @@ export function HajiPage() {
         <div className="shell-container py-section-sm">
           <EmptyState
             onDark
-            title="Jadwal Haji belum dipublikasikan."
-            description="Kuota dan jadwal Haji ditetapkan oleh pihak berwenang, jadi kami tidak menampilkan perkiraan tanggal. Sampaikan minat Anda lewat konsultasi agar tim menghubungi ketika informasi resminya tersedia."
+            title={c.scheduleTitle}
+            description={c.scheduleBody}
             action={
               <>
                 <ButtonLink to="/konsultasi" variant="accent">
-                  Konsultasikan Rencana Haji
+                  {c.askHajj}
                 </ButtonLink>
                 <ButtonLink to="/jadwal" variant="outline" onDark>
-                  Lihat jadwal yang sudah ada
+                  {c.seeSchedule}
                 </ButtonLink>
               </>
             }

@@ -1,31 +1,57 @@
 import type { Availability } from "../content/types";
+import { chrome } from "../i18n/strings";
+import type { Lang } from "../i18n/types";
 
-const MONTHS = [
-  "Januari",
-  "Februari",
-  "Maret",
-  "April",
-  "Mei",
-  "Juni",
-  "Juli",
-  "Agustus",
-  "September",
-  "Oktober",
-  "November",
-  "Desember",
-];
+/**
+ * Month names are translated rather than delegated to `toLocaleDateString`,
+ * because Intl can silently fall back to the system locale in environments
+ * without full ICU data, which would print an Indonesian date on the English
+ * page. A lookup table cannot drift.
+ */
+const MONTHS: Record<Lang, string[]> = {
+  id: [
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+  ],
+  en: [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ],
+};
 
 /** Returns null when the value is absent so callers render a pending state. */
-export function formatRupiah(value: number | null): string | null {
+export function formatRupiah(value: number | null, lang: Lang): string | null {
   if (value === null || Number.isNaN(value)) return null;
-  return `Rp${value.toLocaleString("id-ID")}`;
+  // The currency does not change with the interface language: a pilgrim pays
+  // in rupiah either way, only the digit grouping follows the reader.
+  return `Rp${value.toLocaleString(lang === "id" ? "id-ID" : "en-US")}`;
 }
 
-export function formatDeparture(iso: string | null): string | null {
+export function formatDeparture(iso: string | null, lang: Lang): string | null {
   if (!iso) return null;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return null;
-  return `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
+  return `${date.getUTCDate()} ${MONTHS[lang][date.getUTCMonth()]} ${date.getUTCFullYear()}`;
 }
 
 /**
@@ -33,23 +59,26 @@ export function formatDeparture(iso: string | null): string | null {
  * month with year. A single long string such as "14 Januari 2027" does not fit
  * a narrow date column at any heading size without wrapping badly.
  */
-export function splitDeparture(iso: string | null): { day: string; rest: string } | null {
+export function splitDeparture(
+  iso: string | null,
+  lang: Lang,
+): { day: string; rest: string } | null {
   if (!iso) return null;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return null;
   return {
     day: String(date.getUTCDate()).padStart(2, "0"),
-    rest: `${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`,
+    rest: `${MONTHS[lang][date.getUTCMonth()]} ${date.getUTCFullYear()}`,
   };
 }
 
 /** Accepts the `YYYY-MM` form stored on packages. */
-export function formatMonth(value: string | null): string | null {
+export function formatMonth(value: string | null, lang: Lang): string | null {
   if (!value) return null;
   const [year, month] = value.split("-");
   const index = Number(month) - 1;
-  if (!year || Number.isNaN(index) || !MONTHS[index]) return null;
-  return `${MONTHS[index]} ${year}`;
+  if (!year || Number.isNaN(index) || !MONTHS[lang][index]) return null;
+  return `${MONTHS[lang][index]} ${year}`;
 }
 
 export interface AvailabilityMeta {
@@ -63,36 +92,41 @@ export interface AvailabilityMeta {
   description: string;
 }
 
-export const availabilityMeta: Record<Availability, AvailabilityMeta> = {
+/**
+ * Shape and colour are a single table because they are a visual decision, while
+ * the wording comes from the shared dictionary so the same status cannot read
+ * two different ways on two pages.
+ */
+const AVAILABILITY_STYLE: Record<
+  Availability,
+  { marker: AvailabilityMeta["marker"]; className: string; darkClassName: string }
+> = {
   available: {
-    label: "Tersedia",
     marker: "solid",
     className: "text-status-available",
     darkClassName: "text-status-available-dark",
-    description: "Masih dapat dipesan.",
   },
   limited: {
-    label: "Seat terbatas",
     marker: "half",
     className: "text-status-limited",
     darkClassName: "text-status-limited-dark",
-    description: "Sisa kursi sedikit pada program ini.",
   },
   full: {
-    label: "Penuh",
     marker: "slash",
     className: "text-status-full",
     darkClassName: "text-status-full-dark",
-    description: "Kursi pada program ini sudah terisi.",
   },
   unknown: {
-    label: "Belum dibuka",
     marker: "outline",
     className: "text-charcoal-muted",
     darkClassName: "text-emerald-300",
-    description: "Status ketersediaan belum ditetapkan.",
   },
 };
+
+export function availabilityMetaFor(availability: Availability, lang: Lang): AvailabilityMeta {
+  const copy = chrome[lang].availability[availability];
+  return { ...AVAILABILITY_STYLE[availability], label: copy.label, description: copy.description };
+}
 
 export const availabilityOrder: Availability[] = ["available", "limited", "full", "unknown"];
 
