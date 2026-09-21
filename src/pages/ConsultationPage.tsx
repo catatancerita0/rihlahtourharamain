@@ -1,12 +1,10 @@
 import { Link } from "react-router-dom";
 import { ConsultationForm } from "../components/ConsultationForm";
 import { PageHeader } from "../components/layout/PageHeader";
-import { isPlaceholder, site } from "../config/site";
-import { journeySteps } from "../content/site-content";
+import { isPlaceholder } from "../config/site";
+import { useContent } from "../content/ContentProvider";
 import { useCopy, usePick } from "../i18n/LanguageProvider";
 import type { Localized } from "../i18n/types";
-
-const stepsAfterContact = journeySteps.slice(0, 3);
 
 const idCopy = {
   eyebrow: "Konsultasi",
@@ -49,6 +47,9 @@ const copy: Localized<typeof idCopy> = { id: idCopy, en: enCopy };
 export function ConsultationPage() {
   const c = useCopy(copy);
   const L = usePick();
+  const { journeySteps, profile } = useContent();
+  // Only the first three stages fit beside the form; the rest are on the homepage.
+  const stepsAfterContact = journeySteps.slice(0, 3);
 
   return (
     <>
@@ -87,10 +88,10 @@ export function ConsultationPage() {
 
               <div className="rounded-lg border border-emerald-100 bg-shell p-5">
                 <h2 className="text-body-lg font-semibold text-emerald-900">{c.hoursTitle}</h2>
-                {isPlaceholder(site.serviceHours) ? (
+                {isPlaceholder(profile.serviceHours) ? (
                   <p className="mt-2 text-body-sm text-charcoal-soft">{c.hoursPending}</p>
                 ) : (
-                  <p className="mt-2 text-body-sm text-charcoal-soft">{site.serviceHours}</p>
+                  <p className="mt-2 text-body-sm text-charcoal-soft">{profile.serviceHours}</p>
                 )}
                 <Link
                   to="/kontak"

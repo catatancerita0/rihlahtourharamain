@@ -4,7 +4,8 @@ import { PageHeader } from "../components/layout/PageHeader";
 import { Button } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
 import { SectionHeading } from "../components/ui/SectionHeading";
-import { articleCategoriesFor, articles } from "../content/articles";
+import { useContent } from "../content/ContentProvider";
+import { articleCategoriesFor } from "../content/articles";
 import { pendingGuideTopics } from "../content/site-content";
 import { useCopy, useLang, usePick } from "../i18n/LanguageProvider";
 import type { Localized } from "../i18n/types";
@@ -49,6 +50,7 @@ export function GuidePage() {
   const c = useCopy(copy);
   const L = usePick();
   const lang = useLang();
+  const { articles } = useContent();
   const categories = articleCategoriesFor(articles, lang);
   // The selected category is held as a position rather than a label, because the
   // label changes with the language and a stored label would stop matching the

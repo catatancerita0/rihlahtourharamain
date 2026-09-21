@@ -1,4 +1,5 @@
-import { contactHref, isPlaceholder, site, whatsappHref } from "../config/site";
+import { contactHref, isPlaceholder, whatsappHref } from "../config/site";
+import { useContent } from "../content/ContentProvider";
 import { useCopy, useLang } from "../i18n/LanguageProvider";
 import type { Localized } from "../i18n/types";
 import { ButtonAnchor } from "./ui/Button";
@@ -53,33 +54,34 @@ const copy: Localized<typeof idCopy> = { id: idCopy, en: enCopy };
 
 export function ContactChannels() {
   const c = useCopy(copy);
-  const wa = whatsappHref(useLang());
+  const { profile } = useContent();
+  const wa = whatsappHref(useLang(), undefined, profile);
   const channels: Channel[] = [
     {
       id: "wa",
       label: "WhatsApp",
-      value: site.whatsappDisplay,
+      value: profile.whatsappDisplay,
       href: wa,
       hint: c.waHint,
     },
     {
       id: "email",
       label: "Email",
-      value: site.email,
-      href: contactHref(site.email, "mailto"),
+      value: profile.email,
+      href: contactHref(profile.email, "mailto"),
       hint: c.emailHint,
     },
     {
       id: "phone",
       label: "Telepon",
-      value: site.phone,
-      href: contactHref(site.phone, "tel"),
+      value: profile.phone,
+      href: contactHref(profile.phone, "tel"),
       hint: c.phoneHint,
     },
     {
       id: "address",
       label: "Alamat",
-      value: site.addressLines.join(", "),
+      value: profile.addressLines.join(", "),
       href: null,
       hint: c.addressHint,
     },
@@ -125,10 +127,11 @@ export function ContactChannels() {
 
 export function ContactPendingNotice() {
   const c = useCopy(copy);
+  const { profile } = useContent();
   const missing = [
-    isPlaceholder(site.whatsappNumber) ? c.labelWa : null,
-    isPlaceholder(site.email) ? c.labelEmail : null,
-    isPlaceholder(site.phone) ? c.labelPhone : null,
+    isPlaceholder(profile.whatsappNumber) ? c.labelWa : null,
+    isPlaceholder(profile.email) ? c.labelEmail : null,
+    isPlaceholder(profile.phone) ? c.labelPhone : null,
   ].filter((value): value is string => value !== null);
 
   if (missing.length === 0) {

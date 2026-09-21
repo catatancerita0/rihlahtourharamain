@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { site } from "../../config/site";
+import { useContent } from "../../content/ContentProvider";
+import { isNavHidden } from "../../content/bundle";
+import type { NavKey } from "../../content/types";
 import { useCopy } from "../../i18n/LanguageProvider";
 import { chrome, type ChromeCopy } from "../../i18n/strings";
 import { ButtonLink } from "../ui/Button";
@@ -11,14 +13,19 @@ import { LanguageSwitcher } from "../ui/LanguageSwitcher";
  * entries that drive a decision and the menu button keeps the rest one tap
  * away. Home is left out of the trimmed set because the logo already links to it.
  */
-const navItems: Array<{ label: keyof ChromeCopy["nav"]; to: string; onLaptop: boolean }> = [
-  { label: "home", to: "/", onLaptop: false },
-  { label: "umrah", to: "/paket-umrah", onLaptop: true },
-  { label: "haji", to: "/paket-haji", onLaptop: true },
-  { label: "schedule", to: "/jadwal", onLaptop: true },
-  { label: "about", to: "/tentang-kami", onLaptop: false },
-  { label: "guide", to: "/panduan", onLaptop: false },
-  { label: "faq", to: "/faq", onLaptop: true },
+const navItems: Array<{
+  label: keyof ChromeCopy["nav"];
+  to: string;
+  onLaptop: boolean;
+  navKey: NavKey;
+}> = [
+  { label: "home", to: "/", onLaptop: false, navKey: "beranda" },
+  { label: "umrah", to: "/paket-umrah", onLaptop: true, navKey: "paket-umrah" },
+  { label: "haji", to: "/paket-haji", onLaptop: true, navKey: "paket-haji" },
+  { label: "schedule", to: "/jadwal", onLaptop: true, navKey: "jadwal" },
+  { label: "about", to: "/tentang-kami", onLaptop: false, navKey: "tentang-kami" },
+  { label: "guide", to: "/panduan", onLaptop: false, navKey: "panduan" },
+  { label: "faq", to: "/faq", onLaptop: true, navKey: "faq" },
 ];
 
 const linkBase =
@@ -32,6 +39,10 @@ export function Header() {
   const panelId = useId();
   const { pathname } = useLocation();
   const copy = useCopy(chrome);
+  const { profile, navigation } = useContent();
+  // Hiding a page in the admin removes its menu entry. A shared link to that
+  // route still works, so nothing a jamaah already received stops resolving.
+  const visibleNav = navItems.filter((item) => !isNavHidden(navigation, item.navKey));
 
   // A route change while the menu is open would leave it covering the new page.
   useEffect(() => {
@@ -64,19 +75,20 @@ export function Header() {
           <Link
             to="/"
             className="flex flex-col rounded-sm text-shell"
-            aria-label={`${site.brand}, ${copy.nav.backHome}`}
+            aria-label={`${profile.brand}, ${copy.nav.backHome}`}
           >
             <span className="font-display text-2xl leading-none tracking-tight lg:text-[1.75rem]">
-              Rihlah
+              {profile.shortBrand}
             </span>
+            {/* Split from the brand so a longer or shorter name still lines up. */}
             <span className="text-label font-semibold uppercase text-emerald-300">
-              Tour Haramain
+              {profile.brand.replace(profile.shortBrand, "").trim()}
             </span>
           </Link>
 
           <nav aria-label={copy.nav.main} className="hidden lg:block">
             <ul className="flex items-center gap-1">
-              {navItems.map((item) => (
+              {visibleNav.map((item) => (
                 <li key={item.to} className={item.onLaptop ? undefined : "hidden xl:block"}>
                   <NavLink
                     to={item.to}
@@ -132,7 +144,7 @@ export function Header() {
         >
           <nav aria-label={copy.nav.mainMobile} className="shell-container py-4">
             <ul className="flex flex-col divide-y divide-emerald-100">
-              {navItems.map((item) => (
+              {visibleNav.map((item) => (
                 <li key={item.to}>
                   <NavLink
                     to={item.to}

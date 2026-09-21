@@ -3,7 +3,7 @@ import { ButtonLink } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
 import { Media } from "../components/ui/Media";
 import { SectionHeading } from "../components/ui/SectionHeading";
-import { teamMembers } from "../content/site-content";
+import { useContent } from "../content/ContentProvider";
 import { useCopy, usePick } from "../i18n/LanguageProvider";
 import type { Localized } from "../i18n/types";
 
@@ -74,6 +74,7 @@ const copy: Localized<typeof idCopy> = { id: idCopy, en: enCopy };
 export function PembimbingPage() {
   const c = useCopy(copy);
   const L = usePick();
+  const { teamMembers } = useContent();
 
   return (
     <>

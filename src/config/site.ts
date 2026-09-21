@@ -1,4 +1,4 @@
-import type { Photo } from "../content/types";
+import type { LegalDocument, Photo, SiteProfile } from "../content/types";
 import type { Lang, Localized } from "../i18n/types";
 
 /**
@@ -21,14 +21,11 @@ import type { Lang, Localized } from "../i18n/types";
 // .github/workflows/deploy.yml in the same commit, or the two disagree.
 export const siteUrl = "https://catatancerita0.github.io/rihlahtourharamain";
 
-/** A licence scan or other official file shown on the legality page. */
-export interface LegalDocument {
-  id: string;
-  label: Localized<string>;
-  /** Path inside public/, or a full URL. null keeps the entry hidden. */
-  file: string | null;
-}
-
+/**
+ * The compiled seed. The admin panel can override any of it in the backend, and
+ * the app falls back to exactly these values when the backend is unreachable, so
+ * the public site never depends on a network round trip to render.
+ */
 const legalDocuments: LegalDocument[] = [
   {
     id: "doc-ppiu",
@@ -47,7 +44,7 @@ export function canonicalFor(pathname: string): string {
   return `${siteUrl}${clean}`;
 }
 
-export const site = {
+export const site: SiteProfile = {
   brand: "Rihlah Tour Haramain",
   shortBrand: "Rihlah",
   // Brand lines travel with the language switch like any other copy.
@@ -115,10 +112,19 @@ export function isPlaceholder(value: string | null | undefined): boolean {
   return PLACEHOLDER_PATTERN.test(value.trim());
 }
 
-export function whatsappHref(lang: Lang, message?: string): string | null {
-  if (isPlaceholder(site.whatsappNumber)) return null;
-  const digits = site.whatsappNumber.replace(/\D/g, "");
-  return `https://wa.me/${digits}?text=${encodeURIComponent(message ?? site.whatsappMessage[lang])}`;
+/**
+ * The profile is a parameter rather than a module read so the admin's stored
+ * version is what gets used. Defaulting to the compiled seed keeps the helper
+ * usable from anywhere the bundle is not in scope.
+ */
+export function whatsappHref(
+  lang: Lang,
+  message?: string,
+  profile: SiteProfile = site,
+): string | null {
+  if (isPlaceholder(profile.whatsappNumber)) return null;
+  const digits = profile.whatsappNumber.replace(/\D/g, "");
+  return `https://wa.me/${digits}?text=${encodeURIComponent(message ?? profile.whatsappMessage[lang])}`;
 }
 
 export function contactHref(value: string, kind: "tel" | "mailto"): string | null {

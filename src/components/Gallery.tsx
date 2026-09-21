@@ -1,4 +1,4 @@
-import { gallerySlots } from "../content/site-content";
+import { useContent } from "../content/ContentProvider";
 import { useCopy, usePick } from "../i18n/LanguageProvider";
 import type { Localized } from "../i18n/types";
 import { Media } from "./ui/Media";
@@ -23,6 +23,7 @@ const copy: Localized<typeof idCopy> = { id: idCopy, en: enCopy };
 export function Gallery() {
   const c = useCopy(copy);
   const L = usePick();
+  const { gallerySlots } = useContent();
   const withPhotos = gallerySlots.filter((slot) => slot.photo !== null).length;
 
   return (

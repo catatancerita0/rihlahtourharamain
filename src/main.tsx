@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
+import { ContentProvider } from "./content/ContentProvider";
 import { LanguageProvider } from "./i18n/LanguageProvider";
 import "./index.css";
 
@@ -17,9 +18,11 @@ if (!container) {
 createRoot(container).render(
   <StrictMode>
     <LanguageProvider>
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
-        <App />
-      </BrowserRouter>
+      <ContentProvider>
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
+          <App />
+        </BrowserRouter>
+      </ContentProvider>
     </LanguageProvider>
   </StrictMode>,
 );

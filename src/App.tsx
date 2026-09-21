@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Route, Routes } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
 import { AboutPage } from "./pages/AboutPage";
@@ -18,6 +19,15 @@ import { PembimbingPage } from "./pages/PembimbingPage";
 import { PrivacyPage } from "./pages/PrivacyPage";
 import { SchedulePage } from "./pages/SchedulePage";
 import { TermsPage } from "./pages/TermsPage";
+
+/**
+ * The panel is loaded only when someone opens /admin. It is a large amount of
+ * form code that no visitor needs, so it should not sit in the bundle that
+ * every page downloads.
+ */
+const AdminPage = lazy(() =>
+  import("./pages/AdminPage").then((module) => ({ default: module.AdminPage })),
+);
 
 export default function App() {
   return (
@@ -43,6 +53,27 @@ export default function App() {
         <Route path="/kebijakan-privasi" element={<PrivacyPage />} />
         <Route path="/syarat-ketentuan" element={<TermsPage />} />
         <Route path="/pembatalan-refund" element={<CancellationPage />} />
+        {/* Admin lives inside the layout so the panel keeps the same header,
+            footer and language switch as the rest of the site. Access is
+            decided by the database, not by this route being unlisted. */}
+        <Route
+          path="/admin"
+          element={
+            <Suspense
+              fallback={
+                <div className="section bg-shell">
+                  <div className="shell-container">
+                    <p role="status" className="text-body text-charcoal-soft">
+                      Memuat panel admin...
+                    </p>
+                  </div>
+                </div>
+              }
+            >
+              <AdminPage />
+            </Suspense>
+          }
+        />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

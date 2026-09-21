@@ -6,7 +6,7 @@ import { PageHeader } from "../components/layout/PageHeader";
 import { Button } from "../components/ui/Button";
 import { Dialog } from "../components/ui/Dialog";
 import { SectionHeading } from "../components/ui/SectionHeading";
-import { packages } from "../content/packages";
+import { useContent } from "../content/ContentProvider";
 import type { PackageCategory } from "../content/types";
 import { usePackageFilter } from "../hooks/usePackageFilter";
 import { useCopy } from "../i18n/LanguageProvider";
@@ -58,6 +58,7 @@ const copy: Localized<typeof idCopy> = { id: idCopy, en: enCopy };
 
 export function PackageListPage({ category }: PackageListPageProps) {
   const c = useCopy(copy);
+  const { packages } = useContent();
   const items = packages.filter((item) => item.category === category);
   const filter = usePackageFilter(items);
   const [sheetOpen, setSheetOpen] = useState(false);

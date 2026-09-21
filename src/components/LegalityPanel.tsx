@@ -1,4 +1,4 @@
-import { site } from "../config/site";
+import { useContent } from "../content/ContentProvider";
 import { useCopy, useLang } from "../i18n/LanguageProvider";
 import { pick, type Localized } from "../i18n/types";
 import { assetUrl } from "../lib/media";
@@ -75,7 +75,8 @@ const docCopy: Localized<typeof docCopyId> = {
 };
 
 export function LegalityPanel() {
-  const entity = site.legalEntity;
+  const { profile } = useContent();
+  const entity = profile.legalEntity;
   const copy = useCopy(docCopy);
   const lang = useLang();
 
@@ -109,11 +110,11 @@ export function LegalityPanel() {
             { label: copy.nib, value: entity.nib, pending: copy.unset },
             { label: copy.ppiu, value: entity.ppiu, pending: copy.unset },
             { label: copy.pihk, value: entity.pihk, pending: copy.unset },
-            { label: copy.address, value: site.addressLines.join(", "), pending: copy.unset },
-            { label: copy.phone, value: site.phone, pending: copy.unset },
-            { label: copy.email, value: site.email, pending: copy.unset },
+            { label: copy.address, value: profile.addressLines.join(", "), pending: copy.unset },
+            { label: copy.phone, value: profile.phone, pending: copy.unset },
+            { label: copy.email, value: profile.email, pending: copy.unset },
             { label: copy.bank, value: entity.bankAccount, pending: copy.unset },
-            { label: copy.hours, value: site.serviceHours, pending: copy.unset },
+            { label: copy.hours, value: profile.serviceHours, pending: copy.unset },
           ]}
         />
       </div>

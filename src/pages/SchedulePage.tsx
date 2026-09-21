@@ -4,7 +4,7 @@ import { ButtonLink } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
 import { SectionHeading } from "../components/ui/SectionHeading";
 import { Tag } from "../components/ui/Tag";
-import { packages } from "../content/packages";
+import { useContent } from "../content/ContentProvider";
 import { useCopy } from "../i18n/LanguageProvider";
 import type { Localized } from "../i18n/types";
 import { sortByAvailability } from "../lib/format";
@@ -65,6 +65,7 @@ const copy: Localized<typeof idCopy> = { id: idCopy, en: enCopy };
 
 export function SchedulePage() {
   const c = useCopy(copy);
+  const { packages } = useContent();
   const withDates = packages.filter(
     (item) => item.departureDate !== null || item.departureMonth !== null,
   );

@@ -19,6 +19,20 @@ import {
   type FormValues,
 } from "../src/components/ConsultationForm";
 import { isPlaceholder, site, whatsappHref } from "../src/config/site";
+import { AdminPage } from "../src/pages/AdminPage";
+import { ContentProvider } from "../src/content/ContentProvider";
+import {
+  activePromos,
+  bannerPromos,
+  buildBundle,
+  isPromoActive,
+  promosForPackage,
+  seedBundle,
+  todayIso,
+} from "../src/content/bundle";
+import type { ContentBundle, Promo, TravelPackage } from "../src/content/types";
+import { mergeRecords } from "../src/lib/admin-collections";
+import { blocksToText, textToBlocks } from "../src/lib/article-text";
 import { LanguageProvider } from "../src/i18n/LanguageProvider";
 import { both, type Lang, type Localized } from "../src/i18n/types";
 import { articles } from "../src/content/articles";
@@ -57,6 +71,7 @@ const staticPaths = [
   "/kebijakan-privasi",
   "/syarat-ketentuan",
   "/pembatalan-refund",
+  "/admin",
 ];
 
 const dynamicPaths = [
@@ -157,15 +172,33 @@ function stubStoredLanguage(lang: Lang) {
   };
 }
 
-function render(path: string, lang: Lang = "id"): string {
+/**
+ * The bundle is injectable so the checks can render what the admin's edits
+ * would produce: a hidden section, a running promotion, a page taken out of the
+ * menu. Without it those gates could only test the compiled defaults.
+ */
+function render(path: string, lang: Lang = "id", bundle?: ContentBundle): string {
   stubStoredLanguage(lang);
   return renderToString(
     <LanguageProvider>
-      <StaticRouter location={path}>
-        <App />
-      </StaticRouter>
+      <ContentProvider initialBundle={bundle}>
+        <StaticRouter location={path}>
+          <App />
+        </StaticRouter>
+      </ContentProvider>
     </LanguageProvider>,
   );
+}
+
+function withBundle(changes: Partial<ContentBundle>): ContentBundle {
+  return { ...seedBundle, ...changes };
+}
+
+/** Isolates one region of the rendered page, so a check does not pass or fail
+ * because of a link that lives somewhere else on the same page. */
+function region(html: string, tag: "header" | "footer"): string {
+  const match = html.match(new RegExp(`<${tag}\\b[\\s\\S]*?</${tag}>`));
+  return match ? match[0] : "";
 }
 
 console.log("Route rendering and content checks");
@@ -551,8 +584,15 @@ const contentNeedles: string[] = (() => {
   return Array.from(new Set(found));
 })();
 
+/**
+ * The admin panel is an internal tool and is written in Indonesian on purpose,
+ * so it is left out of the language gates. Every visitor-facing route is still
+ * covered: this removes one path, not a category.
+ */
+const bilingualPaths = [...staticPaths, ...dynamicPaths].filter((path) => path !== "/admin");
+
 const englishFailures: string[] = [];
-for (const path of [...staticPaths, ...dynamicPaths]) {
+for (const path of bilingualPaths) {
   try {
     const html = render(path, "en");
     if (html.length < 200) englishFailures.push(`${path} rendered almost nothing`);
@@ -567,7 +607,7 @@ for (const failure of englishFailures) {
 
 const wordPattern = new RegExp(`\\b(${indonesianWords.join("|")})\\b`);
 
-const leakedIndonesian = [...staticPaths, ...dynamicPaths].flatMap((path) => {
+const leakedIndonesian = bilingualPaths.flatMap((path) => {
   const html = render(path, "en");
   const text = visibleText(html);
   const phraseLeaks = indonesianPhrases
@@ -809,6 +849,282 @@ for (const tag of withPhotos.matchAll(/<img\b[^>]*>/g)) {
 }
 report(tagsWithoutAlt.length === 0, "every rendered image carries alternative text");
 report(tagsWithoutLoading.length === 0, "every rendered image states how it should load");
+
+console.log("");
+console.log("Bundle built from backend rows");
+
+const emptyBackend = buildBundle([], []);
+report(
+  emptyBackend.bundle.packages.length === seedBundle.packages.length &&
+    emptyBackend.bundle.articles.length === seedBundle.articles.length &&
+    emptyBackend.bundle.faqs.length === seedBundle.faqs.length,
+  "an empty backend leaves every compiled record in place",
+);
+report(
+  emptyBackend.bundle.profile.whatsappNumber === site.whatsappNumber &&
+    emptyBackend.bundle.about.commitments.length === seedBundle.about.commitments.length,
+  "the profile and about page fall back to the compiled values",
+);
+
+const override = buildBundle(
+  [
+    {
+      collection: "packages",
+      slug: "reguler",
+      position: 0,
+      doc: { ...seedBundle.packages[0], name: both("Nama dari database") },
+    },
+  ],
+  [],
+);
+report(
+  override.bundle.packages.find((item) => item.slug === "reguler")?.name.id ===
+    "Nama dari database" &&
+    override.bundle.packages.length === seedBundle.packages.length,
+  "a stored package replaces the compiled record without duplicating it",
+);
+
+const hiddenRecord = buildBundle(
+  [
+    {
+      collection: "packages",
+      slug: "plus",
+      position: -1,
+      doc: seedBundle.packages.find((item) => item.slug === "plus"),
+    },
+  ],
+  [],
+);
+report(
+  hiddenRecord.rejected.length === 0 &&
+    !hiddenRecord.bundle.packages.some((item) => item.slug === "plus"),
+  "a record hidden in the panel leaves the public list",
+);
+
+const brokenRow = buildBundle(
+  [{ collection: "packages", slug: "rusak", position: 0, doc: { name: "bukan localized" } }],
+  [],
+);
+report(
+  brokenRow.rejected.length === 1 && brokenRow.bundle.packages.length === seedBundle.packages.length,
+  "a row the site cannot read is skipped and reported instead of rendered",
+);
+
+const mergedSettings = buildBundle(
+  [],
+  [
+    {
+      key: "profile",
+      value: { whatsappNumber: "6281234567890", email: "halo@contoh.com" },
+    },
+    { key: "navigation", value: { hidden: ["jadwal", "halaman-yang-tidak-ada"] } },
+  ],
+);
+report(
+  mergedSettings.bundle.profile.whatsappNumber === "6281234567890" &&
+    mergedSettings.bundle.profile.brand === site.brand,
+  "settings are merged field by field over the compiled values",
+);
+report(
+  isPlaceholder(mergedSettings.bundle.profile.phone),
+  "a field the admin never filled in keeps its labelled placeholder",
+);
+report(
+  mergedSettings.bundle.navigation.hidden.includes("jadwal") &&
+    !mergedSettings.bundle.navigation.hidden.includes("halaman-yang-tidak-ada" as never),
+  "an unknown page name is dropped instead of being stored",
+);
+report(
+  buildBundle([], [{ key: "profile", value: null }]).bundle.profile.brand === site.brand,
+  "a malformed settings row cannot blank the profile",
+);
+
+console.log("");
+console.log("Promotions");
+
+const today = todayIso();
+const samplePromo = (over: Partial<Promo>): Promo => ({
+  id: "promo-uji",
+  title: both("Promo uji"),
+  detail: null,
+  packageSlug: null,
+  endsAt: null,
+  featured: false,
+  ...over,
+});
+
+report(
+  isPromoActive(samplePromo({ endsAt: "2999-01-01" }), today) &&
+    !isPromoActive(samplePromo({ endsAt: "2000-01-01" }), today) &&
+    isPromoActive(samplePromo({}), today),
+  "a promotion stops by itself once its end date has passed",
+);
+report(
+  activePromos([samplePromo({ endsAt: "2000-01-01" }), samplePromo({})], today).length === 1 &&
+    bannerPromos([samplePromo({ featured: true }), samplePromo({ featured: false })], today).length === 1,
+  "only active promotions are counted, and only marked ones reach the banner",
+);
+report(
+  promosForPackage(
+    [samplePromo({ packageSlug: "plus" }), samplePromo({ packageSlug: "reguler" })],
+    "plus",
+    today,
+  ).length === 1,
+  "a package only shows the promotions that name it",
+);
+
+const runningPromo = withBundle({
+  promos: [
+    samplePromo({
+      title: both("Diskon pendaftaran awal"),
+      packageSlug: "reguler",
+      endsAt: "2999-12-31",
+      featured: true,
+    }),
+  ],
+});
+const promoHome = render("/", "id", runningPromo);
+report(
+  promoHome.includes("Diskon pendaftaran awal") && promoHome.includes("Berlaku sampai"),
+  "an active promotion renders with the date it ends",
+);
+report(
+  !render("/", "id", withBundle({ promos: [samplePromo({ title: both("Promo kedaluwarsa"), endsAt: "2000-01-01", featured: true })] })).includes(
+    "Promo kedaluwarsa",
+  ),
+  "an expired promotion does not render at all",
+);
+report(
+  render("/paket-umrah/reguler", "id", runningPromo).includes("Diskon pendaftaran awal"),
+  "a promotion appears on the package it applies to",
+);
+
+console.log("");
+console.log("Admin-driven layout");
+
+const defaultHome = render("/", "id");
+const hiddenNavHome = render("/", "id", withBundle({ navigation: { hidden: ["jadwal"] } }));
+report(
+  region(defaultHome, "header").includes('href="/jadwal"') &&
+    !region(hiddenNavHome, "header").includes('href="/jadwal"'),
+  "hiding a page removes its entry from the header navigation",
+);
+report(
+  region(defaultHome, "footer").includes('href="/jadwal"') &&
+    !region(hiddenNavHome, "footer").includes('href="/jadwal"'),
+  "hiding a page removes its entry from the footer navigation too",
+);
+
+const trimmedHome = render(
+  "/",
+  "id",
+  withBundle({ homepage: { ...seedBundle.homepage, hiddenSections: ["faq", "guides"] } }),
+);
+report(
+  defaultHome.includes("Yang paling sering ditanyakan") &&
+    !trimmedHome.includes("Yang paling sering ditanyakan") &&
+    !trimmedHome.includes("Persiapan yang bisa dimulai sekarang"),
+  "a homepage section switched off is not rendered, not rendered empty",
+);
+
+const ordered = buildBundle([], [{ key: "homepage", value: { featuredPackageSlugs: ["private"] } }]);
+report(
+  ordered.bundle.packages[0]?.slug === "private" &&
+    ordered.bundle.packages.length === seedBundle.packages.length,
+  "a featured package moves to the front without losing any other record",
+);
+
+console.log("");
+console.log("Panel admin dan situs publik terpisah");
+
+report(
+  !defaultHome.includes("Masuk sebagai admin") && !defaultHome.includes("Keluar"),
+  "no admin control appears anywhere on the public homepage",
+);
+report(
+  defaultHome.includes("Lihat Paket Umrah") && defaultHome.includes("Konsultasikan Rencana Umrah"),
+  "the public homepage renders its calls to action without any session",
+);
+/**
+ * The panel is loaded lazily on the real site, so the route render above only
+ * reaches its fallback. It is rendered directly here to check what the panel
+ * itself says when the backend has not been set up yet.
+ */
+const adminHtml = renderToString(
+  <LanguageProvider>
+    <ContentProvider initialBundle={seedBundle}>
+      <StaticRouter location="/admin">
+        <AdminPage />
+      </StaticRouter>
+    </ContentProvider>
+  </LanguageProvider>,
+);
+report(
+  adminHtml.includes("Panel Admin") &&
+    adminHtml.includes("Backend belum diatur") &&
+    adminHtml.includes("VITE_SUPABASE_URL") &&
+    adminHtml.includes("VITE_SUPABASE_ANON_KEY") &&
+    adminHtml.includes("service_role") &&
+    !adminHtml.includes('type="password"'),
+  "with no backend the panel explains the setup, names the exact values, and shows no form",
+);
+
+console.log("");
+console.log("Article outline editing");
+
+const seedBody = articles[0].content.id;
+report(
+  JSON.stringify(textToBlocks(blocksToText(seedBody))) === JSON.stringify(seedBody),
+  "an article body survives a round trip through the editor outline",
+);
+const parsedOutline = textToBlocks(
+  "## Subjudul\n\nParagraf pertama.\n\n- satu\n- dua\n\n> Catatan penting",
+);
+report(
+  parsedOutline.length === 4 &&
+    parsedOutline[0].kind === "heading" &&
+    parsedOutline[2].kind === "list" &&
+    parsedOutline[2].items.length === 2 &&
+    parsedOutline[3].kind === "note",
+  "the outline reads headings, lists and notes back into blocks",
+);
+
+console.log("");
+console.log("Admin record list");
+
+const adminList = mergeRecords<TravelPackage>("packages", [
+  {
+    collection: "packages",
+    slug: "reguler",
+    position: 5,
+    doc: { ...seedBundle.packages[0], name: both("Diubah admin") },
+  },
+  {
+    collection: "packages",
+    slug: "plus",
+    position: -1,
+    doc: seedBundle.packages.find((item) => item.slug === "plus"),
+  },
+]);
+report(
+  adminList.records.length === seedBundle.packages.length,
+  "the panel lists every compiled record whether or not it was ever edited",
+);
+report(
+  adminList.records.find((record) => record.key === "plus")?.hidden === true,
+  "a hidden record stays in the panel so it can be brought back",
+);
+report(
+  adminList.records.find((record) => record.key === "reguler")?.doc.name.id === "Diubah admin",
+  "the panel shows the stored version of a record rather than the compiled one",
+);
+const addedRecord = mergeRecords("promos", [
+  { collection: "promos", slug: "promo-baru", position: 0, doc: samplePromo({ id: "promo-baru" }) },
+]);
+report(
+  addedRecord.records.length === 1 && addedRecord.records[0].fromSeed === false,
+  "a record the admin created is listed as new, so it can also be deleted",
+);
 
 console.log("");
 console.log(`${failures === 0 ? "ALL CHECKS PASSED" : `${failures} CHECK(S) FAILED`}`);

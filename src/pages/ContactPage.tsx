@@ -2,7 +2,8 @@ import { ContactChannels, ContactPendingNotice } from "../components/ContactChan
 import { PageHeader } from "../components/layout/PageHeader";
 import { ButtonLink } from "../components/ui/Button";
 import { SectionHeading } from "../components/ui/SectionHeading";
-import { isPlaceholder, site } from "../config/site";
+import { isPlaceholder } from "../config/site";
+import { useContent } from "../content/ContentProvider";
 import { useCopy, useLang } from "../i18n/LanguageProvider";
 import { chrome } from "../i18n/strings";
 import type { Localized } from "../i18n/types";
@@ -60,6 +61,7 @@ const copy: Localized<typeof idCopy> = { id: idCopy, en: enCopy };
 export function ContactPage() {
   const c = useCopy(copy);
   const lang = useLang();
+  const { profile } = useContent();
 
   return (
     <>
@@ -94,9 +96,9 @@ export function ContactPage() {
                     {c.address}
                   </dt>
                   <dd className="mt-1 text-body text-charcoal-soft">
-                    {isPlaceholder(site.addressLines.join(""))
+                    {isPlaceholder(profile.addressLines.join(""))
                       ? c.addressPending
-                      : site.addressLines.map((line) => (
+                      : profile.addressLines.map((line) => (
                           <span key={line} className="block">
                             {line}
                           </span>
@@ -108,7 +110,7 @@ export function ContactPage() {
                     {c.hours}
                   </dt>
                   <dd className="mt-1 text-body text-charcoal-soft">
-                    {isPlaceholder(site.serviceHours) ? c.hoursPending : site.serviceHours}
+                    {isPlaceholder(profile.serviceHours) ? c.hoursPending : profile.serviceHours}
                   </dd>
                 </div>
               </dl>

@@ -134,3 +134,187 @@ export interface JourneyStep {
   /** What the jamaah has to do, so the step is actionable rather than a label. */
   jamaahAction: Localized<string>;
 }
+
+/** A reason to choose Rihlah. The first one carries the section on the homepage. */
+export interface ReasonItem {
+  id: string;
+  title: Localized<string>;
+  description: Localized<string>;
+  lead: boolean;
+}
+
+/**
+ * A photo slot. A slot with a photo renders as that photo; a slot without one
+ * says what belongs there, so a page is never padded with stock imagery that
+ * would misrepresent the trips.
+ */
+export interface GallerySlot {
+  id: string;
+  label: Localized<string>;
+  description: Localized<string>;
+  /** Path inside public/, a storage URL, or null while nothing is uploaded. */
+  photo: string | null;
+}
+
+/**
+ * A promotion the admin adds. Kept as content rather than as a prepared banner
+ * so it can expire on its own and so one promo can point at one package.
+ */
+export interface Promo {
+  id: string;
+  title: Localized<string>;
+  detail: Localized<string> | null;
+  /** Package slug this applies to. null means it applies site-wide. */
+  packageSlug: string | null;
+  /** ISO `YYYY-MM-DD` after which the promo stops appearing. null never expires. */
+  endsAt: string | null;
+  /** Whether it also earns a place in the homepage banner. */
+  featured: boolean;
+}
+
+/** Homepage sections the admin can switch off without deleting their content. */
+export const HOME_SECTIONS = [
+  "finder",
+  "umrah",
+  "schedule",
+  "why",
+  "process",
+  "haji",
+  "packages",
+  "guides",
+  "faq",
+  "consult",
+] as const;
+
+export type HomeSectionId = (typeof HOME_SECTIONS)[number];
+
+export interface HomepageSettings {
+  hiddenSections: HomeSectionId[];
+  /** Slugs pinned to the front of the finder. Empty keeps publication order. */
+  featuredPackageSlugs: string[];
+  /** Whether the promo banner is allowed to appear at all. */
+  showPromoBanner: boolean;
+}
+
+/** A licence scan or other official file shown on the licensing page. */
+export interface LegalDocument {
+  id: string;
+  label: Localized<string>;
+  /** Path inside public/, a storage URL, or null while nothing is uploaded. */
+  file: string | null;
+}
+
+export interface LegalEntity {
+  businessName: string;
+  nib: string;
+  ppiu: string;
+  pihk: string;
+  bankAccount: string;
+  documents: LegalDocument[];
+}
+
+/**
+ * Everything the business itself supplies: how it is reached, what its licence
+ * numbers are, and which photos stand in for the ones not uploaded yet.
+ */
+export interface SiteProfile {
+  brand: string;
+  shortBrand: string;
+  tagline: Localized<string>;
+  operatingNote: Localized<string>;
+  whatsappNumber: string;
+  whatsappDisplay: string;
+  whatsappMessage: Localized<string>;
+  email: string;
+  phone: string;
+  serviceHours: string;
+  addressLines: string[];
+  legalEntity: LegalEntity;
+  media: { hero: Photo | null };
+  social: Record<string, string | null>;
+}
+
+/**
+ * About page copy, moved out of the page so the admin can revise it. The two
+ * lists are the arguments the page makes, which is exactly the text a business
+ * changes first.
+ */
+export interface AboutCommitment {
+  id: string;
+  title: Localized<string>;
+  body: Localized<string>;
+}
+
+export interface AboutContent {
+  intro: Localized<string>;
+  howIntro: Localized<string>;
+  programsBody: Localized<string>;
+  consultationBody: Localized<string>;
+  commitments: AboutCommitment[];
+  scopeLimits: Localized<string[]>;
+}
+
+/** Collections the admin edits, one per content type. */
+export const CONTENT_COLLECTIONS = [
+  "packages",
+  "articles",
+  "faqs",
+  "promos",
+  "gallery",
+  "team",
+  "testimonials",
+  "reasons",
+  "journey",
+] as const;
+
+export type ContentCollection = (typeof CONTENT_COLLECTIONS)[number];
+
+/** Pages an admin can take out of the navigation without deleting them. */
+export const NAV_KEYS = [
+  "beranda",
+  "paket-umrah",
+  "paket-haji",
+  "jadwal",
+  "tentang-kami",
+  "pembimbing",
+  "panduan",
+  "galeri",
+  "faq",
+  "legalitas",
+  "kontak",
+] as const;
+
+export type NavKey = (typeof NAV_KEYS)[number];
+
+/**
+ * Hiding a page removes it from the menus and from the homepage. The route stays
+ * reachable so a link already shared with a jamaah keeps working.
+ */
+export interface NavigationSettings {
+  hidden: NavKey[];
+}
+
+/** Single-row settings groups the admin edits. */
+export const SETTINGS_KEYS = ["profile", "homepage", "about", "navigation"] as const;
+
+export type SettingsKey = (typeof SETTINGS_KEYS)[number];
+
+/**
+ * What the pages read. Compiled seeds fill every field, so this shape is always
+ * complete even when the backend has not answered yet or has not been set up.
+ */
+export interface ContentBundle {
+  packages: TravelPackage[];
+  articles: Article[];
+  faqs: FaqItem[];
+  promos: Promo[];
+  teamMembers: TeamMember[];
+  testimonials: Testimonial[];
+  gallerySlots: GallerySlot[];
+  journeySteps: JourneyStep[];
+  reasons: ReasonItem[];
+  profile: SiteProfile;
+  homepage: HomepageSettings;
+  about: AboutContent;
+  navigation: NavigationSettings;
+}

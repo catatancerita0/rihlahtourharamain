@@ -4,7 +4,8 @@ import { ButtonLink } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
 import { Media } from "../components/ui/Media";
 import { Tag } from "../components/ui/Tag";
-import { articles, estimateReadingMinutes, getArticleBySlug } from "../content/articles";
+import { useContent } from "../content/ContentProvider";
+import { estimateReadingMinutes } from "../content/articles";
 import type { ArticleBlock } from "../content/types";
 import { useCopy, useLang, usePick } from "../i18n/LanguageProvider";
 import { chrome } from "../i18n/strings";
@@ -73,7 +74,8 @@ export function GuideArticlePage() {
   const L = usePick();
   const lang = useLang();
   const { slug } = useParams();
-  const article = getArticleBySlug(articles, slug);
+  const { articles } = useContent();
+  const article = articles.find((entry) => entry.slug === slug);
 
   if (!article) {
     return (

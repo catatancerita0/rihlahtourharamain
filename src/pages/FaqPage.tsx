@@ -1,7 +1,8 @@
 import { FAQAccordion } from "../components/FAQAccordion";
 import { PageHeader } from "../components/layout/PageHeader";
 import { ButtonLink } from "../components/ui/Button";
-import { faqCategoriesFor, faqs, faqsForLabel } from "../content/faq";
+import { useContent } from "../content/ContentProvider";
+import { faqCategoriesFor, faqsForLabel } from "../content/faq";
 import { useCopy, useLang } from "../i18n/LanguageProvider";
 import type { Localized } from "../i18n/types";
 
@@ -44,6 +45,7 @@ const copy: Localized<typeof idCopy> = { id: idCopy, en: enCopy };
 export function FaqPage() {
   const c = useCopy(copy);
   const lang = useLang();
+  const { faqs } = useContent();
   const categories = faqCategoriesFor(faqs, lang);
 
   return (

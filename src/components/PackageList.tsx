@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import { useContent } from "../content/ContentProvider";
+import { promosForPackage, todayIso } from "../content/bundle";
 import type { TravelPackage } from "../content/types";
 import { useCopy, useLang, usePick } from "../i18n/LanguageProvider";
 import { chrome } from "../i18n/strings";
@@ -9,6 +11,7 @@ import { ButtonLink } from "./ui/Button";
 import { DefinitionList, type DefinitionRow } from "./ui/DefinitionList";
 import { EmptyState } from "./ui/EmptyState";
 import { Media } from "./ui/Media";
+import { PromoBadge } from "./PromoNotice";
 import { StatusBadge } from "./ui/StatusBadge";
 import { Tag } from "./ui/Tag";
 
@@ -71,6 +74,8 @@ export function PackageCard({ item }: { item: TravelPackage }) {
   const c = useCopy(copy);
   const L = usePick();
   const lang = useLang();
+  const { promos } = useContent();
+  const activePromos = promosForPackage(promos, item.slug, todayIso());
   const price = formatRupiah(item.price, lang);
   const rows: DefinitionRow[] = [
     { label: c.duration, value: item.duration ? L(item.duration) : null, pending: c.durationPending },
@@ -99,9 +104,12 @@ export function PackageCard({ item }: { item: TravelPackage }) {
       {item.thumbnail ? <Media src={item.thumbnail} alt={L(item.name)} ratio="3/2" /> : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tag>
-          {categoryLabels[item.category][lang]} · {programLabels[item.type][lang]}
-        </Tag>
+        <div className="flex flex-wrap items-center gap-3">
+          <Tag>
+            {categoryLabels[item.category][lang]} · {programLabels[item.type][lang]}
+          </Tag>
+          <PromoBadge promos={activePromos} />
+        </div>
         <StatusBadge status={item.availability} showDescription />
       </div>
 

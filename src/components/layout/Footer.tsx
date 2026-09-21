@@ -1,36 +1,46 @@
 import { Link } from "react-router-dom";
-import { contactHref, isPlaceholder, site, whatsappHref } from "../../config/site";
+import { contactHref, isPlaceholder, whatsappHref } from "../../config/site";
+import { useContent } from "../../content/ContentProvider";
+import { isNavHidden } from "../../content/bundle";
+import type { NavKey } from "../../content/types";
 import { useCopy, useLang } from "../../i18n/LanguageProvider";
 import { chrome, type ChromeCopy } from "../../i18n/strings";
 import { GeometricMotif } from "../ui/GeometricMotif";
 
-const navigationLinks: Array<{ label: keyof ChromeCopy["footer"]; to: string }> = [
-  { label: "packages", to: "/paket-umrah" },
-  { label: "schedule", to: "/jadwal" },
-  { label: "about", to: "/tentang-kami" },
-  { label: "guide", to: "/panduan" },
-  { label: "gallery", to: "/galeri" },
-  { label: "faq", to: "/faq" },
+// Each entry carries the page it stands for, so hiding a page removes it from
+// the footer in the same move it is removed from the header.
+type FooterLink = { label: keyof ChromeCopy["footer"]; to: string; navKey: NavKey | null };
+
+const navigationLinks: FooterLink[] = [
+  { label: "packages", to: "/paket-umrah", navKey: "paket-umrah" },
+  { label: "schedule", to: "/jadwal", navKey: "jadwal" },
+  { label: "about", to: "/tentang-kami", navKey: "tentang-kami" },
+  { label: "guide", to: "/panduan", navKey: "panduan" },
+  { label: "gallery", to: "/galeri", navKey: "galeri" },
+  { label: "faq", to: "/faq", navKey: "faq" },
 ];
 
-const legalLinks: Array<{ label: keyof ChromeCopy["footer"]; to: string }> = [
-  { label: "privacy", to: "/kebijakan-privasi" },
-  { label: "terms", to: "/syarat-ketentuan" },
-  { label: "cancellation", to: "/pembatalan-refund" },
-  { label: "licensing", to: "/legalitas" },
+const legalLinks: FooterLink[] = [
+  { label: "privacy", to: "/kebijakan-privasi", navKey: null },
+  { label: "terms", to: "/syarat-ketentuan", navKey: null },
+  { label: "cancellation", to: "/pembatalan-refund", navKey: null },
+  { label: "licensing", to: "/legalitas", navKey: "legalitas" },
 ];
 
 const inlineLink = "text-body-sm text-emerald-100 underline-offset-4 hover:text-shell hover:underline";
 
 export function Footer() {
   const copy = useCopy(chrome);
-  const tagline = useCopy(site.tagline);
+  const { profile, navigation } = useContent();
+  const tagline = useCopy(profile.tagline);
 
-  const wa = whatsappHref(useLang());
-  const mail = contactHref(site.email, "mailto");
-  const socialEntries = Object.entries(site.social).filter(
+  const wa = whatsappHref(useLang(), undefined, profile);
+  const mail = contactHref(profile.email, "mailto");
+  const socialEntries = Object.entries(profile.social).filter(
     (entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0,
   );
+  const shown = (links: FooterLink[]) =>
+    links.filter((item) => item.navKey === null || !isNavHidden(navigation, item.navKey));
 
   /** Config values that are still bracketed placeholders render as a labelled gap. */
   function ValueOrPending({ value }: { value: string }) {
@@ -49,7 +59,7 @@ export function Footer() {
         <div className="grid gap-10 lg:grid-cols-[1.25fr_1fr]">
           <div className="flex flex-col gap-4">
             <div>
-              <p className="font-display text-3xl text-shell">{site.brand}</p>
+              <p className="font-display text-3xl text-shell">{profile.brand}</p>
               <p className="mt-1 text-body text-emerald-100">{tagline}</p>
             </div>
             <dl className="mt-2 grid gap-3 text-body-sm sm:grid-cols-2">
@@ -60,10 +70,10 @@ export function Footer() {
                 <dd className="mt-1">
                   {wa ? (
                     <a href={wa} target="_blank" rel="noreferrer" className={inlineLink}>
-                      {site.whatsappDisplay}
+                      {profile.whatsappDisplay}
                     </a>
                   ) : (
-                    <ValueOrPending value={site.whatsappDisplay} />
+                    <ValueOrPending value={profile.whatsappDisplay} />
                   )}
                 </dd>
               </div>
@@ -74,10 +84,10 @@ export function Footer() {
                 <dd className="mt-1">
                   {mail ? (
                     <a href={mail} className={inlineLink}>
-                      {site.email}
+                      {profile.email}
                     </a>
                   ) : (
-                    <ValueOrPending value={site.email} />
+                    <ValueOrPending value={profile.email} />
                   )}
                 </dd>
               </div>
@@ -86,13 +96,13 @@ export function Footer() {
                   {copy.footer.addressLabel}
                 </dt>
                 <dd className="mt-1 text-emerald-100">
-                  {site.addressLines.map((line) => (
+                  {profile.addressLines.map((line) => (
                     <span key={line} className="block">
                       <ValueOrPending value={line} />
                     </span>
                   ))}
                   <span className="mt-1 block text-emerald-300">
-                    {copy.footer.hoursLabel}: <ValueOrPending value={site.serviceHours} />
+                    {copy.footer.hoursLabel}: <ValueOrPending value={profile.serviceHours} />
                   </span>
                 </dd>
               </div>
@@ -121,7 +131,7 @@ export function Footer() {
                 {copy.footer.explore}
               </h2>
               <ul className="mt-3 flex flex-col gap-2">
-                {navigationLinks.map((item) => (
+                {shown(navigationLinks).map((item) => (
                   <li key={item.to}>
                     <Link to={item.to} className={inlineLink}>
                       {copy.footer[item.label]}
@@ -135,7 +145,7 @@ export function Footer() {
                 {copy.footer.legal}
               </h2>
               <ul className="mt-3 flex flex-col gap-2">
-                {legalLinks.map((item) => (
+                {shown(legalLinks).map((item) => (
                   <li key={item.to}>
                     <Link to={item.to} className={inlineLink}>
                       {copy.footer[item.label]}
@@ -149,13 +159,14 @@ export function Footer() {
 
         <div className="mt-12 border-t border-emerald-700 pt-6">
           <p className="text-body-sm text-emerald-300">
-            {copy.footer.businessNameLabel}: <ValueOrPending value={site.legalEntity.businessName} />
-            {isPlaceholder(site.legalEntity.nib) ? (
+            {copy.footer.businessNameLabel}:{" "}
+            <ValueOrPending value={profile.legalEntity.businessName} />
+            {isPlaceholder(profile.legalEntity.nib) ? (
               <span> · {copy.footer.nibMissing}</span>
             ) : (
               <span>
                 {" "}
-                · {copy.footer.nibPrefix} {site.legalEntity.nib}
+                · {copy.footer.nibPrefix} {profile.legalEntity.nib}
               </span>
             )}
           </p>
@@ -163,6 +174,10 @@ export function Footer() {
             {copy.footer.legalNote}{" "}
             <Link to="/legalitas" className={inlineLink}>
               {copy.footer.licensing}
+            </Link>
+            {" · "}
+            <Link to="/admin" className={inlineLink}>
+              {copy.footer.admin}
             </Link>
           </p>
         </div>

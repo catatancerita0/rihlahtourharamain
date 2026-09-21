@@ -5,6 +5,7 @@ import { DepartureCard, StatusLegend } from "../components/DepartureCard";
 import { FAQAccordion } from "../components/FAQAccordion";
 import { PackageFilter } from "../components/PackageFilter";
 import { PackageResults } from "../components/PackageList";
+import { PromoNotice } from "../components/PromoNotice";
 import { Seo } from "../components/Seo";
 import { ButtonAnchor, ButtonLink } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -13,20 +14,15 @@ import { Media } from "../components/ui/Media";
 import { Reveal } from "../components/ui/Reveal";
 import { SectionHeading } from "../components/ui/SectionHeading";
 import { Tag } from "../components/ui/Tag";
-import { site, whatsappHref } from "../config/site";
-import { articles } from "../content/articles";
-import { faqs } from "../content/faq";
-import { packages, umrahPrograms } from "../content/packages";
-import { journeySteps, reasons } from "../content/site-content";
+import { whatsappHref } from "../config/site";
+import { useContent } from "../content/ContentProvider";
+import { bannerPromos, todayIso } from "../content/bundle";
+import type { HomeSectionId } from "../content/types";
 import { usePackageFilter } from "../hooks/usePackageFilter";
 import { useCopy, useLang, usePick } from "../i18n/LanguageProvider";
 import { chrome } from "../i18n/strings";
 import type { Localized } from "../i18n/types";
 import { programLabels } from "../lib/packages";
-
-const featuredArticles = articles.slice(0, 1);
-const supportingArticles = articles.slice(1, 4);
-const homeFaqs = faqs.slice(0, 6);
 
 const idCopy = {
   seoTitle: "Rihlah Tour Haramain | Paket Umrah dan Haji untuk Jamaah Indonesia",
@@ -205,10 +201,23 @@ export function HomePage() {
   const c = useCopy(copy);
   const L = usePick();
   const lang = useLang();
+  const { packages, articles, faqs, reasons, journeySteps, promos, profile, homepage } =
+    useContent();
   const finder = usePackageFilter(packages);
   const [filterOpen, setFilterOpen] = useState(false);
-  const hero = site.media.hero;
-  const wa = whatsappHref(lang);
+  const [promoDismissed, setPromoDismissed] = useState(false);
+
+  // Sections the admin switched off are not rendered at all, rather than
+  // rendered empty: a hidden section should not leave a gap in the page.
+  const shows = (section: HomeSectionId) => !homepage.hiddenSections.includes(section);
+
+  const umrahPrograms = packages.filter((item) => item.category === "umrah");
+  const featuredArticles = articles.slice(0, 1);
+  const supportingArticles = articles.slice(1, 4);
+  const homeFaqs = faqs.slice(0, 6);
+  const hero = profile.media.hero;
+  const wa = whatsappHref(lang, undefined, profile);
+  const banners = homepage.showPromoBanner && !promoDismissed ? bannerPromos(promos, todayIso()) : [];
 
   return (
     <>
@@ -222,7 +231,9 @@ export function HomePage() {
             <div className="flex flex-col gap-6">
               <p className="eyebrow">{c.heroEyebrow}</p>
               <h1 className="text-display-xl">{c.heroTitle}</h1>
-              <p className="max-w-prose text-body-lg text-emerald-100">{L(site.operatingNote)}</p>
+              <p className="max-w-prose text-body-lg text-emerald-100">
+                {L(profile.operatingNote)}
+              </p>
               <div className="flex flex-wrap gap-3">
                 <ButtonLink to="/paket-umrah" variant="primary" size="lg" onDark>
                   {chrome[lang].cta.viewPackages}
@@ -256,369 +267,422 @@ export function HomePage() {
 
       {/* 2. Package finder. Overlaps the hero edge, which is the one place a
           shadow earns its keep: the panel has to read as sitting above the page. */}
-      <section className="bg-cream" aria-labelledby="finder-title">
-        <div className="shell-container">
-          <div className="relative -mt-10 rounded-xl border border-emerald-100 bg-shell p-5 shadow-panel sm:p-7 lg:-mt-14 lg:p-8">
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <SectionHeading
-                eyebrow={c.finderEyebrow}
-                title={c.finderTitle}
-                intro={c.finderIntro}
-                headingId="finder-title"
-              />
-              <button
-                type="button"
-                onClick={() => setFilterOpen((open) => !open)}
-                aria-expanded={filterOpen}
-                className="inline-flex min-h-11 items-center rounded-md border border-emerald-800 px-4 text-body-sm font-semibold text-emerald-800 hover:bg-emerald-50 lg:hidden"
-              >
-                {filterOpen ? c.hideFilter : c.showFilter}
-              </button>
-            </div>
+      {shows("finder") ? (
+        <section className="bg-cream" aria-labelledby="finder-title">
+          <div className="shell-container">
+            <div className="relative -mt-10 rounded-xl border border-emerald-100 bg-shell p-5 shadow-panel sm:p-7 lg:-mt-14 lg:p-8">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <SectionHeading
+                  eyebrow={c.finderEyebrow}
+                  title={c.finderTitle}
+                  intro={c.finderIntro}
+                  headingId="finder-title"
+                />
+                <button
+                  type="button"
+                  onClick={() => setFilterOpen((open) => !open)}
+                  aria-expanded={filterOpen}
+                  className="inline-flex min-h-11 items-center rounded-md border border-emerald-800 px-4 text-body-sm font-semibold text-emerald-800 hover:bg-emerald-50 lg:hidden"
+                >
+                  {filterOpen ? c.hideFilter : c.showFilter}
+                </button>
+              </div>
 
-            <div className={`${filterOpen ? "mt-7 block" : "hidden"} lg:mt-8 lg:block`}>
-              <PackageFilter
-                idPrefix="home"
-                state={finder.state}
-                update={finder.update}
-                reset={finder.reset}
-                active={finder.active}
-                months={finder.months}
-                bands={finder.bands}
-                resultCount={finder.results.length}
-              />
-            </div>
+              <div className={`${filterOpen ? "mt-7 block" : "hidden"} lg:mt-8 lg:block`}>
+                <PackageFilter
+                  idPrefix="home"
+                  state={finder.state}
+                  update={finder.update}
+                  reset={finder.reset}
+                  active={finder.active}
+                  months={finder.months}
+                  bands={finder.bands}
+                  resultCount={finder.results.length}
+                />
+              </div>
 
-            <div className="mt-8">
-              <PackageResults items={finder.results} active={finder.active} limit={2} />
+              <div className="mt-8">
+                <PackageResults items={finder.results} active={finder.active} limit={2} />
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
+
+      {/* 2b. Promotion banner. It sits after the finder so it never pushes the
+          finder away from the hero it overlaps. Dismissible, because a visitor
+          who has read it should be able to get it out of the way. */}
+      {banners.length > 0 ? (
+        <section className="border-y border-gold bg-cream-deep" aria-label={chrome[lang].promo.bannerLabel}>
+          <div className="shell-container flex flex-col gap-4 py-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="max-w-prose">
+              <p className="text-label font-semibold uppercase text-emerald-700">
+                {chrome[lang].promo.bannerLabel}
+              </p>
+              <div className="mt-3">
+                <PromoNotice promos={banners} />
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPromoDismissed(true)}
+              className="inline-flex min-h-11 shrink-0 items-center rounded-md border border-emerald-800 px-4 text-body-sm font-semibold text-emerald-800 hover:bg-emerald-50"
+            >
+              {chrome[lang].promo.dismiss}
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       {/* 3. Program Umrah. Editorial rows instead of a card grid, because the
           three programs differ in concept rather than in price. */}
-      <section className="section bg-shell" aria-labelledby="program-umrah-title">
-        <div className="shell-container">
-          <Reveal>
-            <SectionHeading
-              eyebrow={c.umrahEyebrow}
-              title={c.umrahTitle}
-              intro={c.umrahIntro}
-              headingId="program-umrah-title"
-            />
-          </Reveal>
+      {shows("umrah") ? (
+        <section className="section bg-shell" aria-labelledby="program-umrah-title">
+          <div className="shell-container">
+            <Reveal>
+              <SectionHeading
+                eyebrow={c.umrahEyebrow}
+                title={c.umrahTitle}
+                intro={c.umrahIntro}
+                headingId="program-umrah-title"
+              />
+            </Reveal>
 
-          <ul className="mt-12 flex flex-col">
-            {umrahPrograms.map((program, index) => (
-              <li
-                key={program.id}
-                className="grid gap-4 border-t border-emerald-100 py-8 sm:grid-cols-[3rem_11rem_1fr] sm:gap-6"
-              >
-                <p className="tabular font-display text-2xl text-emerald-400">
-                  {String(index + 1).padStart(2, "0")}
-                </p>
-                <div>
-                  <h3 className="font-display text-2xl text-emerald-900">{L(program.name)}</h3>
-                  <p className="mt-1 text-label font-semibold uppercase text-charcoal-muted">
-                    {programLabels[program.type][lang]}
+            <ul className="mt-12 flex flex-col">
+              {umrahPrograms.map((program, index) => (
+                <li
+                  key={program.id}
+                  className="grid gap-4 border-t border-emerald-100 py-8 sm:grid-cols-[3rem_11rem_1fr] sm:gap-6"
+                >
+                  <p className="tabular font-display text-2xl text-emerald-400">
+                    {String(index + 1).padStart(2, "0")}
                   </p>
+                  <div>
+                    <h3 className="font-display text-2xl text-emerald-900">{L(program.name)}</h3>
+                    <p className="mt-1 text-label font-semibold uppercase text-charcoal-muted">
+                      {programLabels[program.type][lang]}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <p className="text-body-lg text-charcoal-soft">{L(program.focus)}</p>
+                    <ul className="flex flex-col gap-2">
+                      {L(program.differentiators).map((item) => (
+                        <li key={item} className="flex gap-2 text-body-sm text-charcoal-soft">
+                          <span
+                            aria-hidden="true"
+                            className="mt-2 h-1.5 w-1.5 shrink-0 bg-emerald-400"
+                          />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                    <Link
+                      to={`/paket-umrah/${program.slug}`}
+                      className="self-start rounded-sm text-body-sm font-semibold text-emerald-800 underline decoration-emerald-400 underline-offset-4 hover:decoration-emerald-800"
+                    >
+                      {c.seeDetail} {L(program.name)}
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      ) : null}
+
+      {/* 4. Jadwal. Tinted band, timeline rows, and a legend because status is
+          carried by shape as well as colour. */}
+      {shows("schedule") ? (
+        <section className="section bg-emerald-50" aria-labelledby="jadwal-title">
+          <div className="shell-container">
+            <Reveal>
+              <SectionHeading
+                eyebrow={c.scheduleEyebrow}
+                title={c.scheduleTitle}
+                intro={c.scheduleIntro}
+                headingId="jadwal-title"
+              />
+            </Reveal>
+
+            <div className="mt-10 grid gap-8 lg:grid-cols-[1.6fr_1fr] lg:gap-12">
+              <div className="flex flex-col gap-5">
+                {packages.length === 0 ? (
+                  <EmptyState
+                    title={c.scheduleEmptyTitle}
+                    description={c.scheduleEmptyBody}
+                    action={
+                      <>
+                        <ButtonLink to="/konsultasi" variant="primary">
+                          {chrome[lang].cta.consultPlan}
+                        </ButtonLink>
+                        <ButtonLink to="/jadwal" variant="outline">
+                          {c.openSchedule}
+                        </ButtonLink>
+                      </>
+                    }
+                  />
+                ) : (
+                  packages.map((item) => <DepartureCard key={item.id} item={item} />)
+                )}
+              </div>
+
+              <div className="rounded-lg border border-emerald-200 bg-shell p-5">
+                <h3 className="text-display-sm text-emerald-900">{c.legendTitle}</h3>
+                <p className="mt-2 text-body-sm text-charcoal-soft">{c.legendIntro}</p>
+                <div className="mt-5">
+                  <StatusLegend />
                 </div>
-                <div className="flex flex-col gap-3">
-                  <p className="text-body-lg text-charcoal-soft">{L(program.focus)}</p>
-                  <ul className="flex flex-col gap-2">
-                    {L(program.differentiators).map((item) => (
-                      <li key={item} className="flex gap-2 text-body-sm text-charcoal-soft">
-                        <span
-                          aria-hidden="true"
-                          className="mt-2 h-1.5 w-1.5 shrink-0 bg-emerald-400"
-                        />
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* 5. Kenapa Rihlah. One reason carries the section, the rest stay
+          compact, so the argument has a hierarchy instead of six equal cards. */}
+      {shows("why") ? (
+        <section className="section bg-shell" aria-labelledby="kenapa-title">
+          <div className="shell-container">
+            <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
+              <Reveal>
+                <SectionHeading
+                  eyebrow={c.whyEyebrow}
+                  title={c.whyTitle}
+                  headingId="kenapa-title"
+                />
+              </Reveal>
+              <div className="flex flex-col gap-8">
+                {reasons.map((reason) =>
+                  reason.lead ? (
+                    <Reveal key={reason.id}>
+                      <div className="on-dark rounded-lg border border-emerald-800 bg-emerald-800 p-6 text-shell">
+                        <h3 className="text-display-sm">{L(reason.title)}</h3>
+                        <p className="mt-3 text-body text-emerald-100">{L(reason.description)}</p>
+                      </div>
+                    </Reveal>
+                  ) : (
+                    <Reveal key={reason.id}>
+                      <div className="border-t border-emerald-100 pt-5">
+                        <h3 className="text-body-lg font-semibold text-emerald-900">
+                          {L(reason.title)}
+                        </h3>
+                        <p className="mt-1 max-w-prose text-body-sm text-charcoal-soft">
+                          {L(reason.description)}
+                        </p>
+                      </div>
+                    </Reveal>
+                  ),
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* 6. Proses. Eight real steps on a rail, because collapsing them to three
+          hides the parts jamaah get surprised by, such as document review. */}
+      {shows("process") ? (
+        <section className="section bg-cream" aria-labelledby="proses-title">
+          <div className="shell-container">
+            <Reveal>
+              <SectionHeading
+                eyebrow={c.processEyebrow}
+                title={c.processTitle}
+                intro={c.processIntro}
+                headingId="proses-title"
+              />
+            </Reveal>
+
+            <ol className="mt-12 grid gap-x-12 gap-y-8 lg:grid-cols-2">
+              {journeySteps.map((step, index) => (
+                <li key={step.id} className="flex gap-4 border-t border-emerald-200 pt-5">
+                  <span className="tabular font-display text-2xl text-emerald-800">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-body-lg font-semibold text-emerald-900">
+                      {L(step.title)}
+                    </h3>
+                    <p className="text-body-sm text-charcoal-soft">{L(step.description)}</p>
+                    <p className="text-body-sm text-charcoal-muted">
+                      <span className="font-semibold text-charcoal">{c.prepareLabel}</span>
+                      {L(step.jamaahAction)}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+      ) : null}
+
+      {/* 7. Program Haji. A real chapter break, so it gets the dark surface and
+          the second motif placement. */}
+      {shows("haji") ? (
+        <section className="on-dark bg-emerald-900 text-shell" aria-labelledby="haji-title">
+          <div className="shell-container py-section">
+            <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
+              <Reveal>
+                <SectionHeading
+                  eyebrow={c.hajiEyebrow}
+                  title={c.hajiTitle}
+                  intro={c.hajiIntro}
+                  onDark
+                  headingId="haji-title"
+                />
+              </Reveal>
+              <Reveal>
+                <div className="flex flex-col gap-5">
+                  <div className="rounded-lg border border-emerald-700 bg-emerald-800 p-5">
+                    <Tag onDark>{c.hajiStatusTag}</Tag>
+                    <p className="mt-3 text-body text-emerald-100">{c.hajiStatusBody}</p>
+                  </div>
+                  <ul className="flex flex-col gap-3">
+                    {c.hajiChecks.map((item) => (
+                      <li key={item} className="flex gap-3 text-body-sm text-emerald-100">
+                        <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 bg-gold" />
                         {item}
                       </li>
                     ))}
                   </ul>
-                  <Link
-                    to={`/paket-umrah/${program.slug}`}
-                    className="self-start rounded-sm text-body-sm font-semibold text-emerald-800 underline decoration-emerald-400 underline-offset-4 hover:decoration-emerald-800"
+                  <ButtonLink
+                    to="/paket-haji"
+                    variant="primary"
+                    size="lg"
+                    onDark
+                    className="self-start"
                   >
-                    {c.seeDetail} {L(program.name)}
-                  </Link>
+                    {c.openHaji}
+                  </ButtonLink>
                 </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* 4. Jadwal. Tinted band, timeline rows, and a legend because status is
-          carried by shape as well as colour. */}
-      <section className="section bg-emerald-50" aria-labelledby="jadwal-title">
-        <div className="shell-container">
-          <Reveal>
-            <SectionHeading
-              eyebrow={c.scheduleEyebrow}
-              title={c.scheduleTitle}
-              intro={c.scheduleIntro}
-              headingId="jadwal-title"
-            />
-          </Reveal>
-
-          <div className="mt-10 grid gap-8 lg:grid-cols-[1.6fr_1fr] lg:gap-12">
-            <div className="flex flex-col gap-5">
-              {packages.length === 0 ? (
-                <EmptyState
-                  title={c.scheduleEmptyTitle}
-                  description={c.scheduleEmptyBody}
-                  action={
-                    <>
-                      <ButtonLink to="/konsultasi" variant="primary">
-                        {chrome[lang].cta.consultPlan}
-                      </ButtonLink>
-                      <ButtonLink to="/jadwal" variant="outline">
-                        {c.openSchedule}
-                      </ButtonLink>
-                    </>
-                  }
-                />
-              ) : (
-                packages.map((item) => <DepartureCard key={item.id} item={item} />)
-              )}
-            </div>
-
-            <div className="rounded-lg border border-emerald-200 bg-shell p-5">
-              <h3 className="text-display-sm text-emerald-900">{c.legendTitle}</h3>
-              <p className="mt-2 text-body-sm text-charcoal-soft">{c.legendIntro}</p>
-              <div className="mt-5">
-                <StatusLegend />
-              </div>
+              </Reveal>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* 5. Kenapa Rihlah. One reason carries the section, the rest stay
-          compact, so the argument has a hierarchy instead of six equal cards. */}
-      <section className="section bg-shell" aria-labelledby="kenapa-title">
-        <div className="shell-container">
-          <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
-            <Reveal>
-              <SectionHeading
-                eyebrow={c.whyEyebrow}
-                title={c.whyTitle}
-                headingId="kenapa-title"
-              />
-            </Reveal>
-            <div className="flex flex-col gap-8">
-              {reasons.map((reason) =>
-                reason.lead ? (
-                  <Reveal key={reason.id}>
-                    <div className="rounded-lg border border-emerald-800 bg-emerald-800 p-6 text-shell on-dark">
-                      <h3 className="text-display-sm">{L(reason.title)}</h3>
-                      <p className="mt-3 text-body text-emerald-100">{L(reason.description)}</p>
-                    </div>
-                  </Reveal>
-                ) : (
-                  <Reveal key={reason.id}>
-                    <div className="border-t border-emerald-100 pt-5">
-                      <h3 className="text-body-lg font-semibold text-emerald-900">
-                        {L(reason.title)}
-                      </h3>
-                      <p className="mt-1 max-w-prose text-body-sm text-charcoal-soft">
-                        {L(reason.description)}
-                      </p>
-                    </div>
-                  </Reveal>
-                ),
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 6. Proses. Eight real steps on a rail, because collapsing them to three
-          hides the parts jamaah get surprised by, such as document review. */}
-      <section className="section bg-cream" aria-labelledby="proses-title">
-        <div className="shell-container">
-          <Reveal>
-            <SectionHeading
-              eyebrow={c.processEyebrow}
-              title={c.processTitle}
-              intro={c.processIntro}
-              headingId="proses-title"
-            />
-          </Reveal>
-
-          <ol className="mt-12 grid gap-x-12 gap-y-8 lg:grid-cols-2">
-            {journeySteps.map((step, index) => (
-              <li key={step.id} className="flex gap-4 border-t border-emerald-200 pt-5">
-                <span className="tabular font-display text-2xl text-emerald-800">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <div className="flex flex-col gap-2">
-                  <h3 className="text-body-lg font-semibold text-emerald-900">{L(step.title)}</h3>
-                  <p className="text-body-sm text-charcoal-soft">{L(step.description)}</p>
-                  <p className="text-body-sm text-charcoal-muted">
-                    <span className="font-semibold text-charcoal">{c.prepareLabel}</span>
-                    {L(step.jamaahAction)}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      {/* 7. Program Haji. A real chapter break, so it gets the dark surface and
-          the second motif placement. */}
-      <section className="on-dark bg-emerald-900 text-shell" aria-labelledby="haji-title">
-        <div className="shell-container py-section">
-          <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
-            <Reveal>
-              <SectionHeading
-                eyebrow={c.hajiEyebrow}
-                title={c.hajiTitle}
-                intro={c.hajiIntro}
-                onDark
-                headingId="haji-title"
-              />
-            </Reveal>
-            <Reveal>
-              <div className="flex flex-col gap-5">
-                <div className="rounded-lg border border-emerald-700 bg-emerald-800 p-5">
-                  <Tag onDark>{c.hajiStatusTag}</Tag>
-                  <p className="mt-3 text-body text-emerald-100">{c.hajiStatusBody}</p>
-                </div>
-                <ul className="flex flex-col gap-3">
-                  {c.hajiChecks.map((item) => (
-                    <li key={item} className="flex gap-3 text-body-sm text-emerald-100">
-                      <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 bg-gold" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <ButtonLink
-                  to="/paket-haji"
-                  variant="primary"
-                  size="lg"
-                  onDark
-                  className="self-start"
-                >
-                  {c.openHaji}
-                </ButtonLink>
-              </div>
-            </Reveal>
-          </div>
-        </div>
-        <GeometricMotif className="h-7 w-full text-emerald-700" scale={30} />
-      </section>
+          <GeometricMotif className="h-7 w-full text-emerald-700" scale={30} />
+        </section>
+      ) : null}
 
       {/* 8. What every package page states. This explains the pending marks on
           the package pages instead of leaving them unexplained. */}
-      <section className="section-tight bg-shell" aria-labelledby="kelengkapan-title">
-        <div className="shell-container">
-          <div className="grid gap-8 lg:grid-cols-[1fr_1.4fr] lg:gap-16">
-            <Reveal>
-              <SectionHeading
-                eyebrow={c.packageEyebrow}
-                title={c.packageTitle}
-                intro={c.packageIntro}
-                headingId="kelengkapan-title"
-              />
-            </Reveal>
-            <ul className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
-              {c.packageFields.map((item) => (
-                <li
-                  key={item}
-                  className="flex gap-2 border-b border-emerald-100 py-2.5 text-body-sm text-charcoal-soft"
-                >
-                  <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 bg-emerald-400" />
-                  {item}
-                </li>
-              ))}
-            </ul>
+      {shows("packages") ? (
+        <section className="section-tight bg-shell" aria-labelledby="kelengkapan-title">
+          <div className="shell-container">
+            <div className="grid gap-8 lg:grid-cols-[1fr_1.4fr] lg:gap-16">
+              <Reveal>
+                <SectionHeading
+                  eyebrow={c.packageEyebrow}
+                  title={c.packageTitle}
+                  intro={c.packageIntro}
+                  headingId="kelengkapan-title"
+                />
+              </Reveal>
+              <ul className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
+                {c.packageFields.map((item) => (
+                  <li
+                    key={item}
+                    className="flex gap-2 border-b border-emerald-100 py-2.5 text-body-sm text-charcoal-soft"
+                  >
+                    <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 bg-emerald-400" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       {/* 9. Panduan. One featured article, then the rest compact. */}
-      <section className="section bg-emerald-50" aria-labelledby="panduan-title">
-        <div className="shell-container">
-          <Reveal>
-            <SectionHeading
-              eyebrow={c.guideEyebrow}
-              title={c.guideTitle}
-              intro={c.guideIntro}
-              headingId="panduan-title"
-            />
-          </Reveal>
+      {shows("guides") && articles.length > 0 ? (
+        <section className="section bg-emerald-50" aria-labelledby="panduan-title">
+          <div className="shell-container">
+            <Reveal>
+              <SectionHeading
+                eyebrow={c.guideEyebrow}
+                title={c.guideTitle}
+                intro={c.guideIntro}
+                headingId="panduan-title"
+              />
+            </Reveal>
 
-          <div className="mt-10 grid gap-5 lg:grid-cols-[1.3fr_1fr]">
-            {featuredArticles.map((article) => (
-              <ArticleCard key={article.id} article={article} featured />
-            ))}
-            <ul className="flex flex-col gap-5">
-              {supportingArticles.map((article) => (
-                <li key={article.id}>
-                  <ArticleCard article={article} />
-                </li>
+            <div className="mt-10 grid gap-5 lg:grid-cols-[1.3fr_1fr]">
+              {featuredArticles.map((article) => (
+                <ArticleCard key={article.id} article={article} featured />
               ))}
-            </ul>
-          </div>
+              <ul className="flex flex-col gap-5">
+                {supportingArticles.map((article) => (
+                  <li key={article.id}>
+                    <ArticleCard article={article} />
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-          <ButtonLink to="/panduan" variant="outline" className="mt-8">
-            {c.allGuides}
-          </ButtonLink>
-        </div>
-      </section>
+            <ButtonLink to="/panduan" variant="outline" className="mt-8">
+              {c.allGuides}
+            </ButtonLink>
+          </div>
+        </section>
+      ) : null}
 
       {/* 10. FAQ. Sticky heading beside the accordion so the section reads as a
           reference rather than as another stacked block. */}
-      <section className="section bg-shell" aria-labelledby="faq-title">
-        <div className="shell-container">
-          <div className="grid gap-10 lg:grid-cols-[0.8fr_1.4fr] lg:gap-16">
-            <Reveal className="lg:sticky lg:top-28 lg:self-start">
-              <SectionHeading
-                eyebrow={c.faqEyebrow}
-                title={c.faqTitle}
-                intro={c.faqIntro}
-                headingId="faq-title"
-              />
-              <ButtonLink to="/faq" variant="outline" className="mt-6">
-                {c.allFaqs}
-              </ButtonLink>
-            </Reveal>
-            <FAQAccordion items={homeFaqs} idPrefix="home-faq" />
-          </div>
-        </div>
-      </section>
-
-      {/* 11. Consultation call to action. */}
-      <section className="section-tight bg-cream-deep" aria-labelledby="cta-title">
-        <div className="shell-container">
-          <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr] lg:items-center">
-            <Reveal className="flex flex-col gap-4">
-              <h2 id="cta-title" className="text-display-md text-emerald-900">
-                {c.ctaTitle}
-              </h2>
-              <p className="max-w-prose text-body-lg text-charcoal-soft">{c.ctaBody}</p>
-            </Reveal>
-            <div className="flex flex-wrap gap-3">
-              <ButtonLink to="/konsultasi" variant="accent" size="lg">
-                {c.ctaForm}
-              </ButtonLink>
-              {wa ? (
-                <ButtonAnchor href={wa} variant="outline" size="lg" target="_blank" rel="noreferrer">
-                  {c.ctaWhatsapp}
-                </ButtonAnchor>
-              ) : (
-                <ButtonLink to="/kontak" variant="outline" size="lg">
-                  {c.ctaContact}
+      {shows("faq") && homeFaqs.length > 0 ? (
+        <section className="section bg-shell" aria-labelledby="faq-title">
+          <div className="shell-container">
+            <div className="grid gap-10 lg:grid-cols-[0.8fr_1.4fr] lg:gap-16">
+              <Reveal className="lg:sticky lg:top-28 lg:self-start">
+                <SectionHeading
+                  eyebrow={c.faqEyebrow}
+                  title={c.faqTitle}
+                  intro={c.faqIntro}
+                  headingId="faq-title"
+                />
+                <ButtonLink to="/faq" variant="outline" className="mt-6">
+                  {c.allFaqs}
                 </ButtonLink>
-              )}
+              </Reveal>
+              <FAQAccordion items={homeFaqs} idPrefix="home-faq" />
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
+
+      {/* 11. Consultation call to action. */}
+      {shows("consult") ? (
+        <section className="section-tight bg-cream-deep" aria-labelledby="cta-title">
+          <div className="shell-container">
+            <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr] lg:items-center">
+              <Reveal className="flex flex-col gap-4">
+                <h2 id="cta-title" className="text-display-md text-emerald-900">
+                  {c.ctaTitle}
+                </h2>
+                <p className="max-w-prose text-body-lg text-charcoal-soft">{c.ctaBody}</p>
+              </Reveal>
+              <div className="flex flex-wrap gap-3">
+                <ButtonLink to="/konsultasi" variant="accent" size="lg">
+                  {c.ctaForm}
+                </ButtonLink>
+                {wa ? (
+                  <ButtonAnchor
+                    href={wa}
+                    variant="outline"
+                    size="lg"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {c.ctaWhatsapp}
+                  </ButtonAnchor>
+                ) : (
+                  <ButtonLink to="/kontak" variant="outline" size="lg">
+                    {c.ctaContact}
+                  </ButtonLink>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
     </>
   );
 }

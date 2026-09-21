@@ -94,6 +94,17 @@ const idCopy = {
     },
   },
 
+  // A promotion is always shown with the date it ends, so nobody has to ask
+  // whether an offer is still running.
+  promo: {
+    label: "Promo",
+    bannerLabel: "Promo berjalan",
+    until: (date: string) => `Berlaku sampai ${date}`,
+    expiresToday: "Berlaku sampai hari ini",
+    dismiss: "Tutup pengumuman promo",
+    siteWide: "Berlaku untuk semua program",
+  },
+
   footer: {
     explore: "Jelajahi",
     legal: "Legal",
@@ -119,6 +130,7 @@ const idCopy = {
     socialNone: "Akun media sosial resmi belum ditautkan ke situs ini.",
     socialOfficial: "Akun resmi:",
     legalNote: "Data legalitas lengkap ada di halaman berikut:",
+    admin: "Panel admin",
   },
 };
 
@@ -185,13 +197,22 @@ export const chrome: Localized<typeof idCopy> = {
         label: "Full",
         description: "Every seat on this programme is taken.",
       },
-      unknown: {
-        label: "Not open yet",
-        description: "The seat status has not been set.",
-      },
+    unknown: {
+      label: "Not open yet",
+      description: "The seat status has not been set.",
     },
+  },
 
-    footer: {
+  promo: {
+    label: "Promo",
+    bannerLabel: "Current promotion",
+    until: (date: string) => `Valid until ${date}`,
+    expiresToday: "Valid until today",
+    dismiss: "Dismiss the promotion announcement",
+    siteWide: "Applies to every programme",
+  },
+
+  footer: {
       explore: "Explore",
       legal: "Legal",
       footerNav: "Footer navigation",
@@ -216,6 +237,7 @@ export const chrome: Localized<typeof idCopy> = {
       socialNone: "No official social accounts are linked from this site yet.",
       socialOfficial: "Official accounts:",
       legalNote: "The complete licensing details are on this page:",
+      admin: "Admin panel",
     },
   },
 };

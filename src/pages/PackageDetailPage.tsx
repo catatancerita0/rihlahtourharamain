@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import { FAQAccordion } from "../components/FAQAccordion";
 import { HotelPanel } from "../components/HotelPanel";
 import { ItineraryPanel } from "../components/ItineraryPanel";
+import { PromoNotice } from "../components/PromoNotice";
 import { Seo } from "../components/Seo";
 import { ButtonLink } from "../components/ui/Button";
 import { DefinitionList, type DefinitionRow } from "../components/ui/DefinitionList";
@@ -10,8 +11,8 @@ import { Media } from "../components/ui/Media";
 import { PendingPanel } from "../components/ui/PendingPanel";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { Tag } from "../components/ui/Tag";
-import { faqs } from "../content/faq";
-import { getPackageBySlug, packages } from "../content/packages";
+import { useContent } from "../content/ContentProvider";
+import { promosForPackage, todayIso } from "../content/bundle";
 import type { PackageCategory } from "../content/types";
 import { useCopy, useLang, usePick } from "../i18n/LanguageProvider";
 import { chrome } from "../i18n/strings";
@@ -172,7 +173,11 @@ export function PackageDetailPage({ category }: { category: PackageCategory }) {
   const L = usePick();
   const lang = useLang();
   const { slug } = useParams();
-  const item = getPackageBySlug(slug);
+  const { packages, faqs, promos } = useContent();
+  const item = packages.find((entry) => entry.slug === slug);
+  // A promo expires on its own, so its presence is decided at render time
+  // rather than being baked into the package record.
+  const itemPromos = promosForPackage(promos, slug ?? "", todayIso());
 
   if (!item || item.category !== category) {
     return (
@@ -256,6 +261,13 @@ export function PackageDetailPage({ category }: { category: PackageCategory }) {
                   {chrome[lang].cta.viewSchedule}
                 </ButtonLink>
               </div>
+              {/* A promo sits with the package it applies to, not in a separate
+                  offers page, so the terms are read next to the price. */}
+              {itemPromos.length > 0 ? (
+                <div className="max-w-prose">
+                  <PromoNotice promos={itemPromos} onDark />
+                </div>
+              ) : null}
             </div>
 
             <div className="flex flex-col gap-5">

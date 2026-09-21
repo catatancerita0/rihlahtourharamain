@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
-import { site, whatsappHref } from "../config/site";
+import { whatsappHref } from "../config/site";
+import { useContent } from "../content/ContentProvider";
 import { useCopy, useLang } from "../i18n/LanguageProvider";
 import type { Localized } from "../i18n/types";
 
@@ -28,7 +29,8 @@ const copy: Localized<typeof idCopy> = {
 };
 
 export function WhatsAppButton() {
-  const href = whatsappHref(useLang());
+  const { profile } = useContent();
+  const href = whatsappHref(useLang(), undefined, profile);
   const { pathname } = useLocation();
   const text = useCopy(copy);
 
@@ -45,7 +47,7 @@ export function WhatsAppButton() {
       <Link
         to="/kontak"
         className={`${shell} border border-emerald-800 bg-shell text-emerald-900 hover:bg-cream`}
-        aria-label={`${text.consult}: ${text.openContact} ${site.brand}`}
+        aria-label={`${text.consult}: ${text.openContact} ${profile.brand}`}
       >
         <WhatsAppGlyph />
         <span className="flex flex-col leading-tight">
@@ -62,7 +64,7 @@ export function WhatsAppButton() {
       target="_blank"
       rel="noreferrer"
       className={`${shell} bg-emerald-800 text-shell hover:bg-emerald-700`}
-      aria-label={`${text.openWhatsapp} ${site.brand}`}
+      aria-label={`${text.openWhatsapp} ${profile.brand}`}
     >
       <WhatsAppGlyph />
       <span className="text-body-sm font-semibold">{text.whatsappCta}</span>

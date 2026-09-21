@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { isPlaceholder, site, whatsappHref } from "../config/site";
+import { useContent } from "../content/ContentProvider";
 import { useCopy, useLang } from "../i18n/LanguageProvider";
 import type { Lang, Localized } from "../i18n/types";
 import { Button, ButtonAnchor } from "./ui/Button";
@@ -222,13 +223,19 @@ export function validateConsultation(values: FormValues, lang: Lang): Errors {
  * pair of asterisks as bold, so the heading stands out and every answer keeps
  * its own line, which is what the team reads on a phone.
  */
-export function buildConsultationSummary(values: FormValues, lang: Lang): string {
+export function buildConsultationSummary(
+  values: FormValues,
+  lang: Lang,
+  // The greeting is a parameter so the admin's stored message is what opens the
+  // chat, while a caller without the bundle still gets the compiled default.
+  greeting: string = site.whatsappMessage[lang],
+): string {
   const c = copy[lang];
   const bulanLabel =
     c.bulanOptions.find((option) => option.value === values.bulan)?.label ?? values.bulan;
 
   return [
-    site.whatsappMessage[lang],
+    greeting,
     "",
     `*${c.summaryHeading}*`,
     `${c.summary.name}: ${values.nama.trim()}`,
@@ -253,6 +260,7 @@ export function buildConsultationSummary(values: FormValues, lang: Lang): string
 export function ConsultationForm() {
   const c = useCopy(copy);
   const lang = useLang();
+  const { profile } = useContent();
   const [params] = useSearchParams();
   const prefilledPackage = params.get("paket");
   const [values, setValues] = useState<FormValues>({
@@ -271,9 +279,12 @@ export function ConsultationForm() {
   const [status, setStatus] = useState<Status>("idle");
   const formRef = useRef<HTMLFormElement | null>(null);
 
-  const summary = useMemo(() => buildConsultationSummary(values, lang), [values, lang]);
-  const directHref = whatsappHref(lang, summary);
-  const channelMissing = isPlaceholder(site.whatsappNumber);
+  const summary = useMemo(
+    () => buildConsultationSummary(values, lang, profile.whatsappMessage[lang]),
+    [values, lang, profile],
+  );
+  const directHref = whatsappHref(lang, summary, profile);
+  const channelMissing = isPlaceholder(profile.whatsappNumber);
 
   function setField<K extends keyof FormValues>(key: K, value: FormValues[K]) {
     setValues((current) => ({ ...current, [key]: value }));
